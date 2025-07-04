@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BI Grupo Rugido</title>
-    <!-- Adiciona a biblioteca do cliente Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -29,17 +28,82 @@
 
         body {
             background-color: var(--main-bg);
-            color: var(--text-dark);
             font-family: 'Roboto', sans-serif;
+            margin: 0;
+        }
+        
+        /* --- Secção de Login --- */
+        #login-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .login-container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-container h1 {
+            color: var(--header-bg);
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        .login-container h1 span {
+            color: var(--highlight-pink);
+        }
+        .login-container p {
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+        .login-container .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .login-container .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        .login-container .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--highlight-pink);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .login-container button:hover {
+            background-color: #c53064;
+        }
+        #error-message {
+            color: var(--error-color, #F56565);
+            margin-top: 15px;
+            display: none;
         }
 
+        /* --- Secção da Aplicação --- */
         .app-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-
-        /* --- Header --- */
         header {
             background: var(--header-bg);
             color: white;
@@ -50,12 +114,9 @@
             height: 64px;
             flex-shrink: 0;
         }
-
         header .logo { font-size: 1.5rem; font-weight: 700; }
         header .logo span { color: var(--highlight-pink); }
-
         header nav { display: flex; gap: 10px; }
-        
         header .nav-link {
             color: #E2E8F0;
             text-decoration: none;
@@ -69,9 +130,7 @@
         }
         header .nav-link:hover { background-color: rgba(255,255,255,0.1); }
         header .nav-link.active { background-color: var(--highlight-pink); color: white; }
-
         header .header-actions { display: flex; align-items: center; gap: 20px; }
-        
         header .action-button {
             background: transparent;
             border: 1px solid var(--text-light);
@@ -83,7 +142,6 @@
             transition: all 0.2s ease;
         }
         header .action-button:hover { background-color: rgba(255,255,255,0.1); border-color: white; }
-
         .profile-icon {
             width: 40px;
             height: 40px;
@@ -97,19 +155,14 @@
         }
         .profile-icon:hover { border-color: var(--highlight-pink); }
         .profile-icon svg { color: #E2E8F0; }
-
-
-        /* --- Main Content --- */
         main {
             flex-grow: 1;
             padding: 30px;
             overflow-y: auto;
         }
-        
         .content-section { display: none; }
         .content-section.active { display: block; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -119,21 +172,9 @@
         }
         .page-header h2 { font-size: 2rem; color: var(--text-dark); margin: 0; }
         .page-header p { font-size: 1rem; color: var(--text-light); }
-
-        .dashboard-filters {
-            display: flex;
-            gap: 15px;
-            align-items: flex-end;
-        }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .filter-group label {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            margin-bottom: 4px;
-        }
+        .dashboard-filters { display: flex; gap: 15px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.8rem; color: var(--text-light); margin-bottom: 4px; }
         .filter-group select, .filter-group input {
             padding: 8px 12px;
             border-radius: 6px;
@@ -142,332 +183,101 @@
             font-family: 'Roboto', sans-serif;
             font-size: 0.9rem;
         }
-        #custom-date-filters {
-            display: none; /* Oculto por padrão */
-            gap: 15px;
-        }
-        #custom-date-filters.visible {
-            display: flex;
-        }
-
-        /* --- Dashboard --- */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 24px;
-        }
-        
-        .kpi-card-small {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-        }
-        .kpi-card-small .title { 
-            color: var(--text-light); 
-            margin-bottom: 4px; 
-            font-size: 0.9rem; 
-            font-weight: 500;
-        }
-        .kpi-card-small .value { 
-            font-size: 2rem; 
-            font-weight: 700; 
-        }
-
-        .kpi-card-large {
-            grid-column: span 6;
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            text-align: center;
-        }
-        .kpi-card-large .title { 
-            color: var(--text-dark); 
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            font-size: 1.2rem; 
-            font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
-        }
+        #custom-date-filters { display: none; gap: 15px; }
+        #custom-date-filters.visible { display: flex; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; }
+        .kpi-card-small { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); }
+        .kpi-card-small .title { color: var(--text-light); margin-bottom: 4px; font-size: 0.9rem; font-weight: 500; }
+        .kpi-card-small .value { font-size: 2rem; font-weight: 700; }
+        .kpi-card-large { grid-column: span 6; background: var(--card-bg); padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); text-align: center; }
+        .kpi-card-large .title { color: var(--text-dark); margin-bottom: 12px; padding-bottom: 12px; font-size: 1.2rem; font-weight: 700; border-bottom: 1px solid var(--border-color); }
         .kpi-card-large .value { font-size: 2.5rem; font-weight: 700; color: var(--highlight-pink) }
-
-
-        .widget {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-        }
-        .widget h3 {
-            margin: 0 0 20px 0;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
+        .widget { background: var(--card-bg); padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        .widget h3 { margin: 0 0 20px 0; font-size: 1.2rem; font-weight: 700; color: var(--text-dark); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .ranking-widget { grid-column: span 12; }
-
         .ranking-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
         .ranking-item .rank { font-size: 1rem; font-weight: 700; color: var(--text-light); width: 20px; }
         .ranking-item .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--main-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; }
         .ranking-item .info .name { font-weight: 500; }
         .ranking-item .info .details { color: var(--text-light); font-size: 0.9rem; }
         .ranking-item .value { margin-left: auto; font-weight: 700; font-size: 1.1rem; }
-        
-        .pipeline-widget {
-            grid-column: span 6;
-        }
-        .pipeline-item {
-            display: grid;
-            grid-template-columns: 100px 1fr 40px;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .pipeline-label {
-            color: var(--text-light);
-            font-weight: 500;
-            text-align: right;
-        }
-        .pipeline-bar-bg {
-            width: 100%;
-            height: 12px;
-            background-color: var(--main-bg);
-            border-radius: 6px;
-        }
-        .pipeline-bar-fg {
-            height: 100%;
-            background-color: var(--highlight-pink);
-            border-radius: 6px;
-            transition: width 0.5s ease-out;
-        }
-        .pipeline-value {
-            font-weight: 700;
-            text-align: left;
-        }
-        
-        .channel-metrics-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        .channel-metric-item {
-            text-align: center;
-            padding: 15px;
-            background: #F7FAFC;
-            border-radius: 6px;
-        }
-        .channel-metric-item .channel-name {
-            font-weight: 700;
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-        }
-        .channel-metric-item .metric {
-            display: flex;
-            justify-content: space-between;
-            font-size: 1rem;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .channel-metric-item .metric:last-child {
-            border-bottom: none;
-        }
-        .channel-metric-item .metric-label {
-            color: var(--text-light);
-        }
-        .channel-metric-item .metric-value {
-            font-weight: 700;
-        }
-
-
-        /* --- Forms & Tables --- */
+        .pipeline-widget { grid-column: span 6; }
+        .pipeline-item { display: grid; grid-template-columns: 100px 1fr 40px; gap: 15px; align-items: center; margin-bottom: 16px; }
+        .pipeline-label { color: var(--text-light); font-weight: 500; text-align: right; }
+        .pipeline-bar-bg { width: 100%; height: 12px; background-color: var(--main-bg); border-radius: 6px; }
+        .pipeline-bar-fg { height: 100%; background-color: var(--highlight-pink); border-radius: 6px; transition: width 0.5s ease-out; }
+        .pipeline-value { font-weight: 700; text-align: left; }
+        .channel-metrics-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .channel-metric-item { text-align: center; padding: 15px; background: #F7FAFC; border-radius: 6px; }
+        .channel-metric-item .channel-name { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; }
+        .channel-metric-item .metric { display: flex; justify-content: space-between; font-size: 1rem; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+        .channel-metric-item .metric:last-child { border-bottom: none; }
+        .channel-metric-item .metric-label { color: var(--text-light); }
+        .channel-metric-item .metric-value { font-weight: 700; }
         form { max-width: 900px; margin: 0 auto; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: 1 / -1; }
         label { margin-bottom: 8px; font-weight: 500; color: var(--text-light); }
         input, select, textarea { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); padding: 12px; border-radius: 6px; font-size: 1rem; font-family: 'Roboto', sans-serif; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--highlight-pink); box-shadow: 0 0 0 2px rgba(229, 62, 117, 0.2); }
         textarea { resize: vertical; min-height: 80px; }
-        .full-width { grid-column: 1 / -1; }
-        
-        .form-section-divider {
-            border-top: 1px solid var(--border-color);
-            margin: 30px 0;
-        }
-
-        .lancamento-block {
-            background: #FAFBFF;
-            border: 1px dashed var(--border-color);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            position: relative;
-        }
-        .remove-lancamento-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #E2E8F0;
-            color: var(--text-light);
-            border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .add-lancamento-btn {
-            background: transparent;
-            border: 1px dashed var(--text-light);
-            color: var(--text-light);
-            padding: 10px;
-            width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-        
+        .form-section-divider { border-top: 1px solid var(--border-color); margin: 30px 0; }
+        .lancamento-block { background: #FAFBFF; border: 1px dashed var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; position: relative; }
+        .remove-lancamento-btn { position: absolute; top: 10px; right: 10px; background: #E2E8F0; color: var(--text-light); border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+        .add-lancamento-btn { background: transparent; border: 1px dashed var(--text-light); color: var(--text-light); padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
         button[type="submit"] { background: var(--highlight-pink); color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 700; width: 100%; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
         th { background-color: #F7FAFC; font-weight: 500; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
         td { color: var(--text-dark); }
         tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
         tbody tr:hover { background-color: #EDF2F7; }
-        .table-filters input, .table-filters select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        /* --- Estilos do Modal --- */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal-content {
-            background: var(--main-bg);
-            padding: 30px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            transform: scale(0.95);
-            transition: transform 0.3s ease;
-        }
-        .modal-overlay.visible .modal-content {
-            transform: scale(1);
-        }
-        .modal-close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: var(--text-light);
-            cursor: pointer;
-        }
-
-        /* --- Estilos da Notificação --- */
-        #notification-modal { z-index: 2000; } /* Garante que a notificação fique sobre o modal de edição */
-        #notification-modal .modal-content {
-            max-width: 400px;
-            text-align: center;
-        }
-        #notification-message {
-            font-size: 1.1rem;
-            margin-bottom: 20px;
-        }
-        #notification-close-btn {
-            background: var(--header-bg);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
+        .table-filters input, .table-filters select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--main-bg); padding: 30px; border-radius: 8px; width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 2rem; color: var(--text-light); cursor: pointer; }
+        #notification-modal { z-index: 2000; }
+        #notification-modal .modal-content { max-width: 400px; text-align: center; }
+        #notification-message { font-size: 1.1rem; margin-bottom: 20px; }
+        #notification-close-btn { background: var(--header-bg); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
         #notification-modal .modal-content.success { border-left: 5px solid var(--success-color); }
         #notification-modal .modal-content.error { border-left: 5px solid var(--error-color); }
-
-        /* --- Estilos da Aba Propostas --- */
-        .proposal-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            flex-wrap: wrap;
-        }
-        .proposal-info {
-            flex-grow: 1;
-        }
-        .proposal-info .lead-name {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-dark);
-        }
-        .proposal-info .details {
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .proposal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .proposal-actions button {
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: opacity 0.2s ease;
-        }
-        .proposal-actions button:hover {
-            opacity: 0.8;
-        }
-        .btn-ganha {
-            background-color: var(--success-color);
-            color: white;
-        }
-        .btn-perdida {
-            background-color: var(--error-color);
-            color: white;
-        }
-
+        .proposal-card { background: var(--card-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; }
+        .proposal-info { flex-grow: 1; }
+        .proposal-info .lead-name { font-weight: 700; font-size: 1.1rem; color: var(--text-dark); }
+        .proposal-info .details { font-size: 0.9rem; color: var(--text-light); }
+        .proposal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .proposal-actions button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s ease; }
+        .proposal-actions button:hover { opacity: 0.8; }
+        .btn-ganha { background-color: var(--success-color); color: white; }
+        .btn-perdida { background-color: var(--error-color); color: white; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
+    <div id="login-section">
+        <div class="login-container">
+            <h1>Grupo <span>Rugido</span></h1>
+            <p>Faça login para aceder ao dashboard.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Palavra-passe</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit">Entrar</button>
+                <p id="error-message"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-section" class="app-container" style="display: none;">
         <header>
             <div class="logo">Grupo <span>Rugido</span></div>
             <nav>
@@ -477,7 +287,7 @@
                 <a href="#" class="nav-link" data-target="historico">Histórico</a>
             </nav>
             <div class="header-actions">
-                <button class="action-button">Sair</button>
+                <button id="logout-button" class="action-button">Sair</button>
                 <div class="profile-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
@@ -582,11 +392,14 @@
                                 <option value="custom">Personalizado</option>
                             </select>
                         </div>
-                        <div class="form-group" id="custom-date-form-group" style="display: none;">
-                            <label for="date-form">Data do Evento</label>
-                            <input type="date" id="date-form" required>
+                        <div class="form-group">
+                            <label for="closer-name-form">Closer</label>
+                            <select id="closer-name-form"></select>
                         </div>
-                        <div class="form-group"><label for="closer-name-form">Closer</label><select id="closer-name-form"></select></div>
+                        <div class="form-group full-width" id="custom-date-form-group" style="display: none;">
+                            <label for="date-form">Data do Evento</label>
+                            <input type="date" id="date-form">
+                        </div>
                     </div>
 
                     <div class="form-section-divider"></div>
@@ -606,6 +419,12 @@
                     <div>
                         <h2>Propostas em Aberto</h2>
                         <p>Converta propostas em vendas ou perdas.</p>
+                    </div>
+                    <div class="dashboard-filters">
+                         <div class="filter-group">
+                            <label for="propostas-closer-filter">Closer</label>
+                            <select id="propostas-closer-filter"></select>
+                        </div>
                     </div>
                 </div>
                 <div id="propostas-container">
@@ -669,604 +488,590 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            
-            // --- Configuração do Supabase ---
             const SUPABASE_URL = 'https://tzwzgbulgfiibgodmige.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6d3pnYnVsZ2ZpaWJnb2RtaWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MzUyNjYsImV4cCI6MjA2NzIxMTI2Nn0.5BmYUgPf1IpOGjgaRtKfgssZr_iIsSflNd3hxEZnwb0';
             
-            if (!window.supabase) {
-                showNotification("Erro: A biblioteca do Supabase não pôde ser carregada. Verifique sua conexão com a internet.", "error");
-                return;
-            }
             const { createClient } = window.supabase;
             const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            // --- Variável Global de Dados ---
-            let activities = [];
+            // --- Elementos Globais ---
+            const loginSection = document.getElementById('login-section');
+            const appSection = document.getElementById('app-section');
+            const loginForm = document.getElementById('login-form');
+            const errorMessage = document.getElementById('error-message');
 
-            // --- Elementos do DOM ---
-            const navLinks = document.querySelectorAll('.nav-link');
-            const contentSections = document.querySelectorAll('.content-section');
-            const historyContainer = document.getElementById('history-table-container');
-            const propostasContainer = document.getElementById('propostas-container');
-            const form = document.getElementById('activity-form');
-            const lancamentosContainer = document.getElementById('lancamentos-container');
-            const addLancamentoBtn = document.getElementById('add-lancamento-btn');
-            const userFilter = document.getElementById('user-filter');
-            const closerNameForm = document.getElementById('closer-name-form');
-            const channelFilterDash = document.getElementById('channel-filter-dash');
-            const datePresetFilter = document.getElementById('date-preset-filter');
-            const customDateFilters = document.getElementById('custom-date-filters');
-            const startDateFilter = document.getElementById('start-date-filter');
-            const endDateFilter = document.getElementById('end-date-filter');
-            const datePresetForm = document.getElementById('date-preset-form');
-            const customDateFormGroup = document.getElementById('custom-date-form-group');
-            const dateFormInput = document.getElementById('date-form');
-            const editModal = document.getElementById('edit-modal');
-            const editForm = document.getElementById('edit-activity-form');
-            const modalCloseBtn = document.getElementById('modal-close-btn');
-            const notificationModal = document.getElementById('notification-modal');
-            const notificationMessage = document.getElementById('notification-message');
-            const notificationCloseBtn = document.getElementById('notification-close-btn');
+            // --- Função Principal de Inicialização da Aplicação ---
+            const startApp = async () => {
+                // Esconde o login e mostra a aplicação
+                loginSection.style.display = 'none';
+                appSection.style.display = 'flex';
 
-            // --- Lógica de Notificação ---
-            const showNotification = (message, type = 'info') => { // type pode ser 'success' ou 'error'
-                notificationMessage.textContent = message;
-                const modalContent = notificationModal.querySelector('.modal-content');
-                modalContent.classList.remove('success', 'error');
-                if (type === 'success' || type === 'error') {
-                    modalContent.classList.add(type);
-                }
-                notificationModal.classList.add('visible');
-            };
+                // --- Variável Global de Dados ---
+                let activities = [];
 
-            const closeNotification = () => {
-                notificationModal.classList.remove('visible');
-            };
+                // --- Elementos do DOM do Dashboard ---
+                const navLinks = document.querySelectorAll('.nav-link');
+                const contentSections = document.querySelectorAll('.content-section');
+                const historyContainer = document.getElementById('history-table-container');
+                const propostasContainer = document.getElementById('propostas-container');
+                const propostasCloserFilter = document.getElementById('propostas-closer-filter');
+                const form = document.getElementById('activity-form');
+                const lancamentosContainer = document.getElementById('lancamentos-container');
+                const addLancamentoBtn = document.getElementById('add-lancamento-btn');
+                const userFilter = document.getElementById('user-filter');
+                const closerNameForm = document.getElementById('closer-name-form');
+                const channelFilterDash = document.getElementById('channel-filter-dash');
+                const datePresetFilter = document.getElementById('date-preset-filter');
+                const customDateFilters = document.getElementById('custom-date-filters');
+                const startDateFilter = document.getElementById('start-date-filter');
+                const endDateFilter = document.getElementById('end-date-filter');
+                const datePresetForm = document.getElementById('date-preset-form');
+                const customDateFormGroup = document.getElementById('custom-date-form-group');
+                const dateFormInput = document.getElementById('date-form');
+                const editModal = document.getElementById('edit-modal');
+                const editForm = document.getElementById('edit-activity-form');
+                const modalCloseBtn = document.getElementById('modal-close-btn');
+                const notificationModal = document.getElementById('notification-modal');
+                const notificationMessage = document.getElementById('notification-message');
+                const notificationCloseBtn = document.getElementById('notification-close-btn');
+                const logoutButton = document.getElementById('logout-button');
 
-            notificationCloseBtn.addEventListener('click', closeNotification);
-            notificationModal.addEventListener('click', (e) => {
-                if(e.target === notificationModal) {
-                    closeNotification();
-                }
-            });
-
-            
-            const toISODateString = (date) => date.toISOString().split('T')[0];
-
-            const handleFormDatePresetChange = () => {
-                const preset = datePresetForm.value;
-                const today = new Date();
-                let targetDate = new Date();
-
-                if (preset === 'custom') {
-                    customDateFormGroup.style.display = 'block';
-                    return;
-                }
-                
-                customDateFormGroup.style.display = 'none';
-
-                switch(preset) {
-                    case 'today':
-                        break;
-                    case 'yesterday':
-                        targetDate.setDate(today.getDate() - 1);
-                        break;
-                }
-                dateFormInput.value = toISODateString(targetDate);
-            };
-
-            datePresetForm.addEventListener('change', handleFormDatePresetChange);
-            handleFormDatePresetChange();
-
-            const formatCurrency = (value) => {
-                if (typeof value !== 'number') return 'R$ 0,00';
-                return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            };
-            
-            const createLancamentoBlock = () => {
-                const blockId = `block-${Date.now()}`;
-                const block = document.createElement('div');
-                block.className = 'lancamento-block';
-                block.id = blockId;
-                block.innerHTML = `
-                    <button type="button" class="remove-lancamento-btn" data-target="${blockId}">X</button>
-                    <div class="form-grid">
-                        <div class="form-group"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
-                        <div class="form-group"><label for="bdr-${blockId}">BDR</label><input type="text" id="bdr-${blockId}"></div>
-                        <div class="form-group"><label for="revenue-${blockId}">Faturamento da Empresa</label>
-                            <select id="revenue-${blockId}">
-                                <option>-50k</option>
-                                <option>50k a 150k</option>
-                                <option>150k a 750k</option>
-                                <option>acima de 750k</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
-                        <div class="form-group"><label for="qualification-${blockId}">Qualificação</label><select id="qualification-${blockId}"><option>Qualificado</option><option>Não Qualificado</option></select></div>
-                        <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option></select></div>
-                        <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option><option>Venda Ganhada</option><option>Venda Perdida</option></select></div>
-                        <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                        <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
-                        <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
-                        <div class="form-group"><label for="sale-value-${blockId}">Valor da Venda (R$)</label><input type="number" id="sale-value-${blockId}" placeholder="5000"></div>
-                        <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
-                    </div>
-                `;
-                lancamentosContainer.appendChild(block);
-            };
-
-            addLancamentoBtn.addEventListener('click', createLancamentoBlock);
-            lancamentosContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-lancamento-btn')) {
-                    const targetId = e.target.getAttribute('data-target');
-                    document.getElementById(targetId).remove();
-                }
-            });
-
-            // --- Lógica de Dados e Filtros ---
-            
-            async function fetchActivities() {
-                const { data, error } = await supabaseClient.from('activities').select('*');
-                if (error) {
-                    console.error('Erro ao buscar atividades:', error);
-                    showNotification('Não foi possível carregar os dados do banco. Verifique se a tabela "activities" foi criada no Supabase.', 'error');
-                    return;
-                }
-                activities = data;
-                updateAllData();
-                renderTable();
-                populateCloserFilters();
-            }
-
-            const filterActivities = () => {
-                const selectedUser = userFilter.value;
-                const selectedChannel = channelFilterDash.value;
-                const startDate = startDateFilter.value ? new Date(startDateFilter.value + 'T00:00:00') : null;
-                const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
-
-                return activities.filter(act => {
-                    const activityDate = new Date(act.date + 'T00:00:00');
-                    const userMatch = selectedUser === 'all' || act.closer === selectedUser;
-                    const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
-                    const startDateMatch = !startDate || activityDate >= startDate;
-                    const endDateMatch = !endDate || activityDate <= endDate;
-                    return userMatch && channelMatch && startDateMatch && endDateMatch;
-                });
-            };
-
-            const updateAllData = () => {
-                const filteredData = filterActivities();
-                updateDashboard(filteredData);
-                updateRanking(filteredData);
-                updatePipelineWidgets(filteredData);
-                updateChannelMetrics(filteredData);
-                renderPropostas(filteredData);
-            };
-
-            const updateDashboard = (data) => {
-                const vendas = data.filter(act => act.status === 'Venda Ganhada');
-                const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                
-                document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
-                document.getElementById('kpi-vendas').textContent = vendas.length;
-                document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
-                document.getElementById('kpi-perdidas').textContent = data.filter(act => act.status === 'Venda Perdida').length;
-                document.getElementById('kpi-reunioes-totais').textContent = data.length;
-                document.getElementById('kpi-qualificadas').textContent = data.filter(act => act.qualification === 'Qualificado').length;
-                document.getElementById('kpi-desqualificadas').textContent = data.filter(act => act.qualification === 'Não Qualificado').length;
-                document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
-                document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
-                document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
-
-                const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
-                const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
-                const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
-                let valorPropostasAbertas = 0;
-                leadsAbertosComProposta.forEach(lead => {
-                    const propostasDoLead = data.filter(act => act.lead === lead && act.proposal_value > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
-                    if (propostasDoLead.length > 0) { valorPropostasAbertas += propostasDoLead[0].proposal_value; }
-                });
-                document.getElementById('kpi-propostas-aberto').innerHTML = formatCurrency(valorPropostasAbertas);
-            };
-            
-            const updateChannelMetrics = (data) => {
-                const container = document.getElementById('channel-metrics-container');
-                const channels = ['Inbound', 'Outbound', 'Webinar'];
-                let html = '';
-
-                channels.forEach(channel => {
-                    const channelData = data.filter(act => act.channel === channel);
-                    const channelSales = channelData.filter(act => act.status === 'Venda Ganhada');
-                    const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                    
-                    html += `
-                        <div class="channel-metric-item">
-                            <div class="channel-name">${channel}</div>
-                            <div class="metric">
-                                <span class="metric-label">Reuniões</span>
-                                <span class="metric-value">${channelData.length}</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">Vendas</span>
-                                <span class="metric-value">${channelSales.length}</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">Valor Vendas</span>
-                                <span class="metric-value">${formatCurrency(channelRevenue)}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-            };
-
-            const updatePipelineWidgets = (data) => {
-                const stageContainer = document.getElementById('stage-pipeline-container');
-                const evolutionContainer = document.getElementById('evolution-pipeline-container');
-
-                const stages = ['R1', 'R2', 'R3', 'R4'];
-                const stageCounts = stages.map(stage => data.filter(act => act.type === stage).length);
-                const maxStageCount = Math.max(...stageCounts, 1);
-
-                let stageHTML = '';
-                stages.forEach((stage, index) => {
-                    const count = stageCounts[index];
-                    const widthPercent = (count / maxStageCount) * 100;
-                    stageHTML += `<div class="pipeline-item"><div class="pipeline-label">${stage}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
-                });
-                stageContainer.innerHTML = stageHTML;
-
-                const evolutions = ['De R1 para R2', 'De R2 para R3', 'De R3 para R4'];
-                const evolutionCounts = evolutions.map(evo => data.filter(act => act.evolution === evo).length);
-                const maxEvolutionCount = Math.max(...evolutionCounts, 1);
-
-                let evolutionHTML = '';
-                evolutions.forEach((evo, index) => {
-                    const count = evolutionCounts[index];
-                    const widthPercent = (count / maxEvolutionCount) * 100;
-                    evolutionHTML += `<div class="pipeline-item"><div class="pipeline-label">${evo.replace('De ', '').replace(' para ', ' > ')}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
-                });
-                evolutionContainer.innerHTML = evolutionHTML;
-            };
-
-            const updateRanking = (data) => {
-                const rankingContainer = document.getElementById('ranking-container');
-                const salesByCloser = data.filter(act => act.status === 'Venda Ganhada' && act.sale_value > 0).reduce((acc, act) => {
-                    if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
-                    acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
-                }, {});
-                const sortedClosers = Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
-                let rankingHTML = '';
-                if (sortedClosers.length === 0) { rankingHTML += '<p>Nenhuma venda registrada no período.</p>'; } 
-                else { sortedClosers.forEach((closer, index) => {
-                    const initials = closer.name.split(' ').map(n => n[0]).join('');
-                    rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
-                });}
-                rankingContainer.innerHTML = rankingHTML;
-            };
-
-            const renderTable = () => {
-                const tableBody = document.querySelector('#history-table-container table tbody');
-                if (!tableBody) {
-                    historyContainer.innerHTML = `
-                        <table>
-                            <thead>
-                                <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th></tr>
-                                <tr class="table-filters">
-                                    <td><input type="date" class="history-filter" data-key="date"></td>
-                                    <td><select class="history-filter" data-key="closer"></select></td>
-                                    <td><input type="text" class="history-filter" data-key="bdr" placeholder="Filtrar..."></td>
-                                    <td><input type="text" class="history-filter" data-key="lead" placeholder="Filtrar..."></td>
-                                    <td><select class="history-filter" data-key="channel"></select></td>
-                                    <td><select class="history-filter" data-key="company_revenue"></select></td>
-                                    <td><select class="history-filter" data-key="qualification"></select></td>
-                                    <td><select class="history-filter" data-key="status"></select></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td><input type="text" class="history-filter" data-key="notes" placeholder="Filtrar..."></td>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    `;
-                    // Populate filter dropdowns
-                    const getUniqueOptions = (key) => ['Todos', ...new Set(activities.map(act => act[key]).filter(Boolean))];
-                    
-                    const closerFilter = document.querySelector('.table-filters [data-key="closer"]');
-                    getUniqueOptions('closer').forEach(opt => closerFilter.innerHTML += `<option>${opt}</option>`);
-
-                    const channelFilter = document.querySelector('.table-filters [data-key="channel"]');
-                    getUniqueOptions('channel').forEach(opt => channelFilter.innerHTML += `<option>${opt}</option>`);
-
-                    const revenueFilter = document.querySelector('.table-filters [data-key="company_revenue"]');
-                    getUniqueOptions('company_revenue').forEach(opt => revenueFilter.innerHTML += `<option>${opt}</option>`);
-
-                    const qualificationFilter = document.querySelector('.table-filters [data-key="qualification"]');
-                    getUniqueOptions('qualification').forEach(opt => qualificationFilter.innerHTML += `<option>${opt}</option>`);
-                    
-                    const statusFilter = document.querySelector('.table-filters [data-key="status"]');
-                    getUniqueOptions('status').forEach(opt => statusFilter.innerHTML += `<option>${opt}</option>`);
-
-                    document.querySelectorAll('.history-filter').forEach(filter => filter.addEventListener('input', renderTable));
-                }
-
-                const filters = {};
-                document.querySelectorAll('.history-filter').forEach(f => { filters[f.dataset.key] = f.value; });
-
-                const filteredActivities = activities.filter(act => {
-                    return Object.entries(filters).every(([key, value]) => {
-                        if (!value || value === 'Todos') return true;
-                        if (key === 'date') return act.date === value;
-                        return String(act[key]).toLowerCase().includes(value.toLowerCase());
-                    });
+                logoutButton.addEventListener('click', async () => {
+                    await supabaseClient.auth.signOut();
+                    loginSection.style.display = 'flex';
+                    appSection.style.display = 'none';
                 });
 
-                const finalTableBody = document.querySelector('#history-table-container table tbody');
-                finalTableBody.innerHTML = '';
-                filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
-                    const row = document.createElement('tr');
-                    row.dataset.id = act.id; // Adiciona o ID para o clique
-                    row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td>`;
-                    finalTableBody.appendChild(row);
-                });
-            };
-            
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const headerData = { date: document.getElementById('date-form').value, closer: document.getElementById('closer-name-form').value };
-                const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
-                const newActivitiesPayload = [];
-                
-                lancamentoBlocks.forEach(block => {
-                    const blockId = block.id;
-                    const newActivity = { ...headerData, 
-                        lead: document.getElementById(`lead-name-${blockId}`).value, 
-                        bdr: document.getElementById(`bdr-${blockId}`).value,
-                        channel: document.getElementById(`channel-${blockId}`).value, 
-                        type: document.getElementById(`activity-type-${blockId}`).value, 
-                        status: document.getElementById(`activity-status-${blockId}`).value, 
-                        evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
-                        sale_value: parseFloat(document.getElementById(`sale-value-${blockId}`).value) || null, 
-                        proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
-                        notes: document.getElementById(`notes-${blockId}`).value,
-                        qualification: document.getElementById(`qualification-${blockId}`).value,
-                        company_revenue: document.getElementById(`revenue-${blockId}`).value,
-                        proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
-                    };
-                    if(newActivity.lead) newActivitiesPayload.push(newActivity);
-                });
-
-                if (newActivitiesPayload.length === 0) { 
-                    showNotification('Adicione e preencha pelo menos um lançamento antes de salvar.', 'error');
-                    return; 
-                }
-                
-                const { error } = await supabaseClient.from('activities').insert(newActivitiesPayload);
-
-                if (error) {
-                    console.error('Erro ao salvar:', error);
-                    showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
-                } else {
-                    showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
-                    lancamentosContainer.innerHTML = '';
-                    createLancamentoBlock();
-                    await fetchActivities();
-                }
-            });
-
-            // --- Lógica do Modal de Edição ---
-            const openEditModal = (activityId) => {
-                const activity = activities.find(act => act.id == activityId);
-                if (!activity) return;
-
-                document.getElementById('edit-activity-id').value = activity.id;
-                document.getElementById('edit-lead-name').value = activity.lead;
-                document.getElementById('edit-bdr').value = activity.bdr;
-                document.getElementById('edit-revenue').value = activity.company_revenue;
-                document.getElementById('edit-channel').value = activity.channel;
-                document.getElementById('edit-qualification').value = activity.qualification;
-                document.getElementById('edit-activity-type').value = activity.type;
-                document.getElementById('edit-activity-status').value = activity.status;
-                document.getElementById('edit-proposal-sent').value = activity.proposal_sent;
-                document.getElementById('edit-funnel-evolution').value = activity.evolution;
-                document.getElementById('edit-proposal-value').value = activity.proposal_value;
-                document.getElementById('edit-sale-value').value = activity.sale_value;
-                document.getElementById('edit-notes').value = activity.notes;
-
-                editModal.classList.add('visible');
-            };
-
-            const closeEditModal = () => {
-                editModal.classList.remove('visible');
-            };
-
-            historyContainer.addEventListener('click', (e) => {
-                const row = e.target.closest('tr');
-                if (row && row.dataset.id) {
-                    openEditModal(row.dataset.id);
-                }
-            });
-
-            modalCloseBtn.addEventListener('click', closeEditModal);
-            editModal.addEventListener('click', (e) => {
-                if (e.target === editModal) {
-                    closeEditModal();
-                }
-            });
-
-            editForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const id = document.getElementById('edit-activity-id').value;
-                const updatedData = {
-                    lead: document.getElementById('edit-lead-name').value,
-                    bdr: document.getElementById('edit-bdr').value,
-                    company_revenue: document.getElementById('edit-revenue').value,
-                    channel: document.getElementById('edit-channel').value,
-                    qualification: document.getElementById('edit-qualification').value,
-                    type: document.getElementById('edit-activity-type').value,
-                    status: document.getElementById('edit-activity-status').value,
-                    proposal_sent: document.getElementById('edit-proposal-sent').value,
-                    evolution: document.getElementById('edit-funnel-evolution').value,
-                    proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
-                    sale_value: parseFloat(document.getElementById('edit-sale-value').value) || null,
-                    notes: document.getElementById('edit-notes').value,
+                // --- Lógica de Notificação ---
+                const showNotification = (message, type = 'info') => {
+                    notificationMessage.textContent = message;
+                    const modalContent = notificationModal.querySelector('.modal-content');
+                    modalContent.classList.remove('success', 'error');
+                    if (type === 'success' || type === 'error') {
+                        modalContent.classList.add(type);
+                    }
+                    notificationModal.classList.add('visible');
                 };
 
-                const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+                const closeNotification = () => {
+                    notificationModal.classList.remove('visible');
+                };
 
-                if (error) {
-                    console.error('Erro ao atualizar:', error);
-                    showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error');
-                } else {
-                    showNotification('Alterações salvas com sucesso!', 'success');
-                    closeEditModal();
-                    await fetchActivities();
-                }
-            });
-            
-            const handleDatePresetChange = () => {
-                const preset = datePresetFilter.value;
-                const today = new Date();
-                let start = new Date();
-                let end = new Date();
-
-                if (preset === 'custom') {
-                    customDateFilters.classList.add('visible');
-                    return;
-                }
-                
-                customDateFilters.classList.remove('visible');
-
-                switch(preset) {
-                    case 'today':
-                        break;
-                    case 'yesterday':
-                        start.setDate(today.getDate() - 1);
-                        end.setDate(today.getDate() - 1);
-                        break;
-                    case 'this_month':
-                        start = new Date(today.getFullYear(), today.getMonth(), 1);
-                        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                        break;
-                    case 'last7days':
-                        start.setDate(today.getDate() - 6);
-                        break;
-                    case 'all_time':
-                        start = null;
-                        end = null;
-                        break;
-                }
-                
-                startDateFilter.value = start ? toISODateString(start) : '';
-                endDateFilter.value = end ? toISODateString(end) : '';
-                updateAllData();
-            };
-
-            const populateCloserFilters = () => {
-                let closers = [...new Set(activities.map(act => act.closer).filter(Boolean))];
-                
-                // Se não houver closers nos dados, usa uma lista padrão.
-                if (closers.length === 0) {
-                    closers = ['Yuri Garcia', 'Pedro Costa']; 
-                }
-                
-                // Limpa os filtros antes de popular
-                userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
-                closerNameForm.innerHTML = '';
-
-                closers.forEach(closer => {
-                    const optionHTML = `<option value="${closer}">${closer}</option>`;
-                    userFilter.innerHTML += optionHTML;
-                    closerNameForm.innerHTML += optionHTML;
-                });
-            };
-
-            // --- Lógica da Aba Propostas ---
-            const renderPropostas = (data) => {
-                propostasContainer.innerHTML = '';
-
-                const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
-                const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
-                const leadsAbertos = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
-
-                if (leadsAbertos.length === 0) {
-                    propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto.</p>';
-                    return;
-                }
-
-                leadsAbertos.forEach(lead => {
-                    const propostasDoLead = data
-                        .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
-                        .sort((a, b) => new Date(b.date) - new Date(a.date));
-                    
-                    if (propostasDoLead.length > 0) {
-                        const ultimaProposta = propostasDoLead[0];
-                        const card = document.createElement('div');
-                        card.className = 'proposal-card';
-                        card.innerHTML = `
-                            <div class="proposal-info">
-                                <div class="lead-name">${ultimaProposta.lead}</div>
-                                <div class="details">
-                                    Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
-                                </div>
-                            </div>
-                            <div class="proposal-actions">
-                                <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
-                                <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
-                            </div>
-                        `;
-                        propostasContainer.appendChild(card);
+                notificationCloseBtn.addEventListener('click', closeNotification);
+                notificationModal.addEventListener('click', (e) => {
+                    if (e.target === notificationModal) {
+                        closeNotification();
                     }
                 });
-            };
 
-            propostasContainer.addEventListener('click', async (e) => {
-                const button = e.target;
-                const id = button.dataset.id;
-                if (!id) return;
+                const toISODateString = (date) => date.toISOString().split('T')[0];
 
-                let newStatus = '';
-                let updatedData = {};
+                const handleFormDatePresetChange = () => {
+                    const preset = datePresetForm.value;
+                    const today = new Date();
+                    let targetDate = new Date();
 
-                if (button.classList.contains('btn-ganha')) {
-                    newStatus = 'Venda Ganhada';
-                    updatedData = { status: newStatus, sale_value: parseFloat(button.dataset.value) };
-                } else if (button.classList.contains('btn-perdida')) {
-                    newStatus = 'Venda Perdida';
-                    updatedData = { status: newStatus };
-                } else {
-                    return;
+                    if (preset === 'custom') {
+                        customDateFormGroup.style.display = 'block';
+                        dateFormInput.required = true;
+                        dateFormInput.value = '';
+                        return;
+                    }
+                    
+                    customDateFormGroup.style.display = 'none';
+                    dateFormInput.required = false;
+
+                    switch(preset) {
+                        case 'today':
+                            break;
+                        case 'yesterday':
+                            targetDate.setDate(today.getDate() - 1);
+                            break;
+                    }
+                    dateFormInput.value = toISODateString(targetDate);
+                };
+
+                datePresetForm.addEventListener('change', handleFormDatePresetChange);
+                handleFormDatePresetChange();
+
+                const formatCurrency = (value) => {
+                    if (typeof value !== 'number') return 'R$ 0,00';
+                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                };
+                
+                const createLancamentoBlock = () => {
+                    const blockId = `block-${Date.now()}`;
+                    const block = document.createElement('div');
+                    block.className = 'lancamento-block';
+                    block.id = blockId;
+                    block.innerHTML = `
+                        <button type="button" class="remove-lancamento-btn" data-target="${blockId}">X</button>
+                        <div class="form-grid">
+                            <div class="form-group"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
+                            <div class="form-group"><label for="bdr-${blockId}">BDR</label><input type="text" id="bdr-${blockId}"></div>
+                            <div class="form-group"><label for="revenue-${blockId}">Faturamento da Empresa</label>
+                                <select id="revenue-${blockId}">
+                                    <option>-50k</option>
+                                    <option>50k a 150k</option>
+                                    <option>150k a 750k</option>
+                                    <option>acima de 750k</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
+                            <div class="form-group"><label for="qualification-${blockId}">Qualificação</label><select id="qualification-${blockId}"><option>Qualificado</option><option>Não Qualificado</option></select></div>
+                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option></select></div>
+                            <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option><option>Venda Ganhada</option><option>Venda Perdida</option></select></div>
+                            <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
+                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
+                            <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
+                            <div class="form-group"><label for="sale-value-${blockId}">Valor da Venda (R$)</label><input type="number" id="sale-value-${blockId}" placeholder="5000"></div>
+                            <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
+                        </div>
+                    `;
+                    lancamentosContainer.appendChild(block);
+                };
+
+                addLancamentoBtn.addEventListener('click', createLancamentoBlock);
+                lancamentosContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-lancamento-btn')) {
+                        const targetId = e.target.getAttribute('data-target');
+                        document.getElementById(targetId).remove();
+                    }
+                });
+                
+                async function fetchActivities() {
+                    const { data, error } = await supabaseClient.from('activities').select('*');
+                    if (error) {
+                        console.error('Erro ao buscar atividades:', error);
+                        showNotification('Não foi possível carregar os dados do banco. Verifique se a tabela "activities" foi criada no Supabase.', 'error');
+                        return;
+                    }
+                    activities = data;
+                    updateAllData();
+                    renderTable();
+                    populateCloserFilters();
                 }
 
-                const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+                const filterActivities = () => {
+                    const selectedUser = userFilter.value;
+                    const selectedChannel = channelFilterDash.value;
+                    const startDate = startDateFilter.value ? new Date(startDateFilter.value + 'T00:00:00') : null;
+                    const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
 
-                if (error) {
-                    showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
-                } else {
-                    showNotification(`Proposta marcada como "${newStatus}" com sucesso!`, 'success');
-                    await fetchActivities();
-                }
-            });
+                    return activities.filter(act => {
+                        const activityDate = new Date(act.date + 'T00:00:00');
+                        const userMatch = selectedUser === 'all' || act.closer === selectedUser;
+                        const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
+                        const startDateMatch = !startDate || activityDate >= startDate;
+                        const endDateMatch = !endDate || activityDate <= endDate;
+                        return userMatch && channelMatch && startDateMatch && endDateMatch;
+                    });
+                };
 
+                const updateAllData = () => {
+                    const filteredData = filterActivities();
+                    updateDashboard(filteredData);
+                    updateRanking(filteredData);
+                    updatePipelineWidgets(filteredData);
+                    updateChannelMetrics(filteredData);
+                    renderPropostas();
+                };
 
-            // --- Event Listeners para Filtros ---
-            userFilter.addEventListener('change', updateAllData);
-            channelFilterDash.addEventListener('change', updateAllData);
-            datePresetFilter.addEventListener('change', handleDatePresetChange);
-            startDateFilter.addEventListener('change', () => {
-                datePresetFilter.value = 'custom';
-                customDateFilters.classList.add('visible');
-                updateAllData();
-            });
-            endDateFilter.addEventListener('change', () => {
-                datePresetFilter.value = 'custom';
-                customDateFilters.classList.add('visible');
-                updateAllData();
-            });
+                const updateDashboard = (data) => {
+                    const vendas = data.filter(act => act.status === 'Venda Ganhada');
+                    const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                    
+                    document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
+                    document.getElementById('kpi-vendas').textContent = vendas.length;
+                    document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
+                    document.getElementById('kpi-perdidas').textContent = data.filter(act => act.status === 'Venda Perdida').length;
+                    document.getElementById('kpi-reunioes-totais').textContent = data.length;
+                    document.getElementById('kpi-qualificadas').textContent = data.filter(act => act.qualification === 'Qualificado').length;
+                    document.getElementById('kpi-desqualificadas').textContent = data.filter(act => act.qualification === 'Não Qualificado').length;
+                    document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
+                    document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
+                    document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
 
-            // --- Renderização Inicial ---
-            async function initializeApp() {
+                    const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
+                    const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
+                    const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
+                    let valorPropostasAbertas = 0;
+                    leadsAbertosComProposta.forEach(lead => {
+                        const propostasDoLead = data.filter(act => act.lead === lead && act.proposal_value > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
+                        if (propostasDoLead.length > 0) { valorPropostasAbertas += propostasDoLead[0].proposal_value; }
+                    });
+                    document.getElementById('kpi-propostas-aberto').innerHTML = formatCurrency(valorPropostasAbertas);
+                };
+                
+                const updateChannelMetrics = (data) => {
+                    const container = document.getElementById('channel-metrics-container');
+                    const channels = ['Inbound', 'Outbound', 'Webinar'];
+                    let html = '';
+
+                    channels.forEach(channel => {
+                        const channelData = data.filter(act => act.channel === channel);
+                        const channelSales = channelData.filter(act => act.status === 'Venda Ganhada');
+                        const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                        
+                        html += `
+                            <div class="channel-metric-item">
+                                <div class="channel-name">${channel}</div>
+                                <div class="metric">
+                                    <span class="metric-label">Reuniões</span>
+                                    <span class="metric-value">${channelData.length}</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Vendas</span>
+                                    <span class="metric-value">${channelSales.length}</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Valor Vendas</span>
+                                    <span class="metric-value">${formatCurrency(channelRevenue)}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                };
+
+                const updatePipelineWidgets = (data) => {
+                    const stageContainer = document.getElementById('stage-pipeline-container');
+                    const evolutionContainer = document.getElementById('evolution-pipeline-container');
+
+                    const stages = ['R1', 'R2', 'R3', 'R4'];
+                    const stageCounts = stages.map(stage => data.filter(act => act.type === stage).length);
+                    const maxStageCount = Math.max(...stageCounts, 1);
+
+                    let stageHTML = '';
+                    stages.forEach((stage, index) => {
+                        const count = stageCounts[index];
+                        const widthPercent = (count / maxStageCount) * 100;
+                        stageHTML += `<div class="pipeline-item"><div class="pipeline-label">${stage}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
+                    });
+                    stageContainer.innerHTML = stageHTML;
+
+                    const evolutions = ['De R1 para R2', 'De R2 para R3', 'De R3 para R4'];
+                    const evolutionCounts = evolutions.map(evo => data.filter(act => act.evolution === evo).length);
+                    const maxEvolutionCount = Math.max(...evolutionCounts, 1);
+
+                    let evolutionHTML = '';
+                    evolutions.forEach((evo, index) => {
+                        const count = evolutionCounts[index];
+                        const widthPercent = (count / maxEvolutionCount) * 100;
+                        evolutionHTML += `<div class="pipeline-item"><div class="pipeline-label">${evo.replace('De ', '').replace(' para ', ' > ')}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
+                    });
+                    evolutionContainer.innerHTML = evolutionHTML;
+                };
+
+                const updateRanking = (data) => {
+                    const rankingContainer = document.getElementById('ranking-container');
+                    const salesByCloser = data.filter(act => act.status === 'Venda Ganhada' && act.sale_value > 0).reduce((acc, act) => {
+                        if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
+                        acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
+                    }, {});
+                    const sortedClosers = Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
+                    let rankingHTML = '';
+                    if (sortedClosers.length === 0) { rankingHTML += '<p>Nenhuma venda registrada no período.</p>'; } 
+                    else { sortedClosers.forEach((closer, index) => {
+                        const initials = closer.name.split(' ').map(n => n[0]).join('');
+                        rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
+                    });}
+                    rankingContainer.innerHTML = rankingHTML;
+                };
+
+                const renderTable = () => {
+                    const tableBody = document.querySelector('#history-table-container table tbody');
+                    if (!tableBody) {
+                        historyContainer.innerHTML = `
+                            <table>
+                                <thead>
+                                    <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th></tr>
+                                    <tr class="table-filters">
+                                        <td><input type="date" class="history-filter" data-key="date"></td>
+                                        <td><select class="history-filter" data-key="closer"></select></td>
+                                        <td><input type="text" class="history-filter" data-key="bdr" placeholder="Filtrar..."></td>
+                                        <td><input type="text" class="history-filter" data-key="lead" placeholder="Filtrar..."></td>
+                                        <td><select class="history-filter" data-key="channel"></select></td>
+                                        <td><select class="history-filter" data-key="company_revenue"></select></td>
+                                        <td><select class="history-filter" data-key="qualification"></select></td>
+                                        <td><select class="history-filter" data-key="status"></select></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td><input type="text" class="history-filter" data-key="notes" placeholder="Filtrar..."></td>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        `;
+                        const getUniqueOptions = (key) => ['Todos', ...new Set(activities.map(act => act[key]).filter(Boolean))];
+                        
+                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="qualification"]').innerHTML = getUniqueOptions('qualification').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option>${opt}</option>`).join('');
+
+                        document.querySelectorAll('.history-filter').forEach(filter => filter.addEventListener('input', renderTable));
+                    }
+
+                    const filters = {};
+                    document.querySelectorAll('.history-filter').forEach(f => { filters[f.dataset.key] = f.value; });
+
+                    const filteredActivities = activities.filter(act => {
+                        return Object.entries(filters).every(([key, value]) => {
+                            if (!value || value === 'Todos') return true;
+                            if (key === 'date') return act.date === value;
+                            return String(act[key]).toLowerCase().includes(value.toLowerCase());
+                        });
+                    });
+
+                    const finalTableBody = document.querySelector('#history-table-container table tbody');
+                    finalTableBody.innerHTML = '';
+                    filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
+                        const row = document.createElement('tr');
+                        row.dataset.id = act.id;
+                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td>`;
+                        finalTableBody.appendChild(row);
+                    });
+                };
+                
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const headerData = { date: document.getElementById('date-form').value, closer: document.getElementById('closer-name-form').value };
+                    const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
+                    const newActivitiesPayload = [];
+                    
+                    lancamentoBlocks.forEach(block => {
+                        const blockId = block.id;
+                        const newActivity = { ...headerData, 
+                            lead: document.getElementById(`lead-name-${blockId}`).value, 
+                            bdr: document.getElementById(`bdr-${blockId}`).value,
+                            channel: document.getElementById(`channel-${blockId}`).value, 
+                            type: document.getElementById(`activity-type-${blockId}`).value, 
+                            status: document.getElementById(`activity-status-${blockId}`).value, 
+                            evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
+                            sale_value: parseFloat(document.getElementById(`sale-value-${blockId}`).value) || null, 
+                            proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
+                            notes: document.getElementById(`notes-${blockId}`).value,
+                            qualification: document.getElementById(`qualification-${blockId}`).value,
+                            company_revenue: document.getElementById(`revenue-${blockId}`).value,
+                            proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
+                        };
+                        if(newActivity.lead) newActivitiesPayload.push(newActivity);
+                    });
+
+                    if (newActivitiesPayload.length === 0) { 
+                        showNotification('Adicione e preencha pelo menos um lançamento antes de salvar.', 'error');
+                        return; 
+                    }
+                    
+                    const { error } = await supabaseClient.from('activities').insert(newActivitiesPayload);
+
+                    if (error) {
+                        console.error('Erro ao salvar:', error);
+                        showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
+                    } else {
+                        showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
+                        lancamentosContainer.innerHTML = '';
+                        createLancamentoBlock();
+                        await fetchActivities();
+                    }
+                });
+
+                const openEditModal = (activityId) => {
+                    const activity = activities.find(act => act.id == activityId);
+                    if (!activity) return;
+                    document.getElementById('edit-activity-id').value = activity.id;
+                    document.getElementById('edit-lead-name').value = activity.lead;
+                    document.getElementById('edit-bdr').value = activity.bdr;
+                    document.getElementById('edit-revenue').value = activity.company_revenue;
+                    document.getElementById('edit-channel').value = activity.channel;
+                    document.getElementById('edit-qualification').value = activity.qualification;
+                    document.getElementById('edit-activity-type').value = activity.type;
+                    document.getElementById('edit-activity-status').value = activity.status;
+                    document.getElementById('edit-proposal-sent').value = activity.proposal_sent;
+                    document.getElementById('edit-funnel-evolution').value = activity.evolution;
+                    document.getElementById('edit-proposal-value').value = activity.proposal_value;
+                    document.getElementById('edit-sale-value').value = activity.sale_value;
+                    document.getElementById('edit-notes').value = activity.notes;
+                    editModal.classList.add('visible');
+                };
+
+                const closeEditModal = () => {
+                    editModal.classList.remove('visible');
+                };
+
+                historyContainer.addEventListener('click', (e) => {
+                    const row = e.target.closest('tr');
+                    if (row && row.dataset.id) {
+                        openEditModal(row.dataset.id);
+                    }
+                });
+
+                modalCloseBtn.addEventListener('click', closeEditModal);
+                editModal.addEventListener('click', (e) => {
+                    if (e.target === editModal) {
+                        closeEditModal();
+                    }
+                });
+
+                editForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const id = document.getElementById('edit-activity-id').value;
+                    const updatedData = {
+                        lead: document.getElementById('edit-lead-name').value,
+                        bdr: document.getElementById('edit-bdr').value,
+                        company_revenue: document.getElementById('edit-revenue').value,
+                        channel: document.getElementById('edit-channel').value,
+                        qualification: document.getElementById('edit-qualification').value,
+                        type: document.getElementById('edit-activity-type').value,
+                        status: document.getElementById('edit-activity-status').value,
+                        proposal_sent: document.getElementById('edit-proposal-sent').value,
+                        evolution: document.getElementById('edit-funnel-evolution').value,
+                        proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
+                        sale_value: parseFloat(document.getElementById('edit-sale-value').value) || null,
+                        notes: document.getElementById('edit-notes').value,
+                    };
+
+                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                    if (error) {
+                        console.error('Erro ao atualizar:', error);
+                        showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error');
+                    } else {
+                        showNotification('Alterações salvas com sucesso!', 'success');
+                        closeEditModal();
+                        await fetchActivities();
+                    }
+                });
+                
+                const handleDatePresetChange = () => {
+                    const preset = datePresetFilter.value;
+                    const today = new Date();
+                    let start = new Date();
+                    let end = new Date();
+
+                    if (preset === 'custom') {
+                        customDateFilters.classList.add('visible');
+                        return;
+                    }
+                    
+                    customDateFilters.classList.remove('visible');
+
+                    switch(preset) {
+                        case 'today': break;
+                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
+                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+                        case 'last7days': start.setDate(today.getDate() - 6); break;
+                        case 'all_time': start = null; end = null; break;
+                    }
+                    
+                    startDateFilter.value = start ? toISODateString(start) : '';
+                    endDateFilter.value = end ? toISODateString(end) : '';
+                    updateAllData();
+                };
+
+                const populateCloserFilters = () => {
+                    let closers = [...new Set(activities.map(act => act.closer).filter(Boolean))];
+                    
+                    if (closers.length === 0) {
+                        closers = ['Yuri Garcia', 'Pedro Costa']; 
+                    }
+                    
+                    userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
+                    closerNameForm.innerHTML = '';
+                    propostasCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
+
+                    closers.forEach(closer => {
+                        const optionHTML = `<option value="${closer}">${closer}</option>`;
+                        userFilter.innerHTML += optionHTML;
+                        closerNameForm.innerHTML += optionHTML;
+                        propostasCloserFilter.innerHTML += optionHTML;
+                    });
+                };
+
+                const renderPropostas = () => {
+                    propostasContainer.innerHTML = '';
+                    const selectedCloser = propostasCloserFilter.value;
+                    const dataToFilter = (selectedCloser === 'all') ? activities : activities.filter(act => act.closer === selectedCloser);
+                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
+                    const leadsFechados = new Set(dataToFilter.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
+                    const leadsAbertos = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
+
+                    if (leadsAbertos.length === 0) {
+                        propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto para o filtro selecionado.</p>';
+                        return;
+                    }
+
+                    leadsAbertos.forEach(lead => {
+                        const propostasDoLead = dataToFilter
+                            .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
+                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                        
+                        if (propostasDoLead.length > 0) {
+                            const ultimaProposta = propostasDoLead[0];
+                            const card = document.createElement('div');
+                            card.className = 'proposal-card';
+                            card.innerHTML = `
+                                <div class="proposal-info">
+                                    <div class="lead-name">${ultimaProposta.lead}</div>
+                                    <div class="details">
+                                        Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+                                    </div>
+                                </div>
+                                <div class="proposal-actions">
+                                    <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
+                                    <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
+                                </div>
+                            `;
+                            propostasContainer.appendChild(card);
+                        }
+                    });
+                };
+
+                propostasContainer.addEventListener('click', async (e) => {
+                    const button = e.target;
+                    const id = button.dataset.id;
+                    if (!id) return;
+
+                    let newStatus = '';
+                    let updatedData = {};
+
+                    if (button.classList.contains('btn-ganha')) {
+                        newStatus = 'Venda Ganhada';
+                        updatedData = { status: newStatus, sale_value: parseFloat(button.dataset.value) };
+                    } else if (button.classList.contains('btn-perdida')) {
+                        newStatus = 'Venda Perdida';
+                        updatedData = { status: newStatus };
+                    } else {
+                        return;
+                    }
+
+                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                    if (error) {
+                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
+                    } else {
+                        showNotification(`Proposta marcada como "${newStatus}" com sucesso!`, 'success');
+                        await fetchActivities();
+                    }
+                });
+
+                userFilter.addEventListener('change', updateAllData);
+                channelFilterDash.addEventListener('change', updateAllData);
+                datePresetFilter.addEventListener('change', handleDatePresetChange);
+                propostasCloserFilter.addEventListener('change', renderPropostas);
+                startDateFilter.addEventListener('change', () => {
+                    datePresetFilter.value = 'custom';
+                    customDateFilters.classList.add('visible');
+                    updateAllData();
+                });
+                endDateFilter.addEventListener('change', () => {
+                    datePresetFilter.value = 'custom';
+                    customDateFilters.classList.add('visible');
+                    updateAllData();
+                });
+
                 navLinks.forEach(link => {
                     link.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -1281,11 +1086,40 @@
                 createLancamentoBlock();
                 await fetchActivities();
                 handleDatePresetChange();
-            }
+            };
 
-            initializeApp();
+            // --- Lógica de Autenticação ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    errorMessage.textContent = 'E-mail ou palavra-passe inválidos.';
+                    errorMessage.style.display = 'block';
+                } else {
+                    await startApp();
+                }
+            });
+
+            // Verifica a sessão ao carregar a página
+            const checkSession = async () => {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    await startApp();
+                } else {
+                    loginSection.style.display = 'flex';
+                    appSection.style.display = 'none';
+                }
+            };
+
+            await checkSession();
         });
     </script>
-
 </body>
 </html>
