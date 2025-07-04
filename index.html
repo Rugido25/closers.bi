@@ -32,14 +32,14 @@
             margin: 0;
         }
         
-        /* --- Secção de Login --- */
-        #login-section {
+        /* --- Secção de Login/Registo --- */
+        .auth-section {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100vh;
         }
-        .login-container {
+        .auth-container {
             background-color: var(--card-bg);
             padding: 40px;
             border-radius: 8px;
@@ -48,36 +48,36 @@
             max-width: 400px;
             text-align: center;
         }
-        .login-container h1 {
+        .auth-container h1 {
             color: var(--header-bg);
             margin-bottom: 10px;
             font-size: 2rem;
         }
-        .login-container h1 span {
+        .auth-container h1 span {
             color: var(--highlight-pink);
         }
-        .login-container p {
+        .auth-container p {
             color: var(--text-light);
             margin-bottom: 30px;
         }
-        .login-container .form-group {
+        .auth-container .form-group {
             margin-bottom: 20px;
             text-align: left;
         }
-        .login-container .form-group label {
+        .auth-container .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: var(--text-light);
         }
-        .login-container .form-group input {
+        .auth-container .form-group input {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 1rem;
         }
-        .login-container button {
+        .auth-container button {
             width: 100%;
             padding: 14px;
             border: none;
@@ -89,10 +89,16 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .login-container button:hover {
+        .auth-container button:hover {
             background-color: #c53064;
         }
-        #error-message {
+        .auth-toggle-link {
+            margin-top: 20px;
+            color: var(--text-light);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .error-message {
             color: var(--error-color, #F56565);
             margin-top: 15px;
             display: none;
@@ -131,6 +137,7 @@
         header .nav-link:hover { background-color: rgba(255,255,255,0.1); }
         header .nav-link.active { background-color: var(--highlight-pink); color: white; }
         header .header-actions { display: flex; align-items: center; gap: 20px; }
+        header .user-display-name { font-weight: 500; }
         header .action-button {
             background: transparent;
             border: 1px solid var(--text-light);
@@ -258,8 +265,8 @@
 </head>
 <body>
 
-    <div id="login-section">
-        <div class="login-container">
+    <div id="login-section" class="auth-section">
+        <div class="auth-container">
             <h1>Grupo <span>Rugido</span></h1>
             <p>Faça login para aceder ao dashboard.</p>
             <form id="login-form">
@@ -272,7 +279,32 @@
                     <input type="password" id="password" required>
                 </div>
                 <button type="submit">Entrar</button>
-                <p id="error-message"></p>
+                <p class="error-message" id="login-error-message"></p>
+                <p class="auth-toggle-link" id="show-signup">Criar uma conta</p>
+            </form>
+        </div>
+    </div>
+
+    <div id="signup-section" class="auth-section" style="display: none;">
+        <div class="auth-container">
+            <h1>Criar Conta</h1>
+            <p>Preencha os seus dados para se registar.</p>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label for="signup-name">Nome Completo</label>
+                    <input type="text" id="signup-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">E-mail</label>
+                    <input type="email" id="signup-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Palavra-passe</label>
+                    <input type="password" id="signup-password" required>
+                </div>
+                <button type="submit">Registar</button>
+                 <p class="error-message" id="signup-error-message"></p>
+                <p class="auth-toggle-link" id="show-login">Já tenho uma conta</p>
             </form>
         </div>
     </div>
@@ -287,6 +319,7 @@
                 <a href="#" class="nav-link" data-target="historico">Histórico</a>
             </nav>
             <div class="header-actions">
+                <span id="user-display-name" class="user-display-name"></span>
                 <button id="logout-button" class="action-button">Sair</button>
                 <div class="profile-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -496,20 +529,27 @@
 
             // --- Elementos Globais ---
             const loginSection = document.getElementById('login-section');
+            const signupSection = document.getElementById('signup-section');
             const appSection = document.getElementById('app-section');
             const loginForm = document.getElementById('login-form');
-            const errorMessage = document.getElementById('error-message');
+            const signupForm = document.getElementById('signup-form');
+            const loginErrorMessage = document.getElementById('login-error-message');
+            const signupErrorMessage = document.getElementById('signup-error-message');
+            const showSignupBtn = document.getElementById('show-signup');
+            const showLoginBtn = document.getElementById('show-login');
 
             // --- Função Principal de Inicialização da Aplicação ---
-            const startApp = async () => {
-                // Esconde o login e mostra a aplicação
+            const startApp = async (user) => {
                 loginSection.style.display = 'none';
+                signupSection.style.display = 'none';
                 appSection.style.display = 'flex';
 
-                // --- Variável Global de Dados ---
+                const { data: profile } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
+                const userName = profile?.full_name || user.email;
+                const userId = user.id;
+
                 let activities = [];
 
-                // --- Elementos do DOM do Dashboard ---
                 const navLinks = document.querySelectorAll('.nav-link');
                 const contentSections = document.querySelectorAll('.content-section');
                 const historyContainer = document.getElementById('history-table-container');
@@ -535,14 +575,15 @@
                 const notificationMessage = document.getElementById('notification-message');
                 const notificationCloseBtn = document.getElementById('notification-close-btn');
                 const logoutButton = document.getElementById('logout-button');
+                const userDisplayName = document.getElementById('user-display-name');
+
+                userDisplayName.textContent = userName;
 
                 logoutButton.addEventListener('click', async () => {
                     await supabaseClient.auth.signOut();
-                    loginSection.style.display = 'flex';
-                    appSection.style.display = 'none';
+                    window.location.reload();
                 });
 
-                // --- Lógica de Notificação ---
                 const showNotification = (message, type = 'info') => {
                     notificationMessage.textContent = message;
                     const modalContent = notificationModal.querySelector('.modal-content');
@@ -582,11 +623,8 @@
                     dateFormInput.required = false;
 
                     switch(preset) {
-                        case 'today':
-                            break;
-                        case 'yesterday':
-                            targetDate.setDate(today.getDate() - 1);
-                            break;
+                        case 'today': break;
+                        case 'yesterday': targetDate.setDate(today.getDate() - 1); break;
                     }
                     dateFormInput.value = toISODateString(targetDate);
                 };
@@ -643,13 +681,12 @@
                     const { data, error } = await supabaseClient.from('activities').select('*');
                     if (error) {
                         console.error('Erro ao buscar atividades:', error);
-                        showNotification('Não foi possível carregar os dados do banco. Verifique se a tabela "activities" foi criada no Supabase.', 'error');
+                        showNotification('Não foi possível carregar os dados do banco.', 'error');
                         return;
                     }
                     activities = data;
                     updateAllData();
                     renderTable();
-                    populateCloserFilters();
                 }
 
                 const filterActivities = () => {
@@ -680,7 +717,6 @@
                 const updateDashboard = (data) => {
                     const vendas = data.filter(act => act.status === 'Venda Ganhada');
                     const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                    
                     document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
                     document.getElementById('kpi-vendas').textContent = vendas.length;
                     document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
@@ -691,7 +727,6 @@
                     document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
                     document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
                     document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
-
                     const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
                     const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
                     const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
@@ -707,29 +742,11 @@
                     const container = document.getElementById('channel-metrics-container');
                     const channels = ['Inbound', 'Outbound', 'Webinar'];
                     let html = '';
-
                     channels.forEach(channel => {
                         const channelData = data.filter(act => act.channel === channel);
                         const channelSales = channelData.filter(act => act.status === 'Venda Ganhada');
                         const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                        
-                        html += `
-                            <div class="channel-metric-item">
-                                <div class="channel-name">${channel}</div>
-                                <div class="metric">
-                                    <span class="metric-label">Reuniões</span>
-                                    <span class="metric-value">${channelData.length}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Vendas</span>
-                                    <span class="metric-value">${channelSales.length}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Valor Vendas</span>
-                                    <span class="metric-value">${formatCurrency(channelRevenue)}</span>
-                                </div>
-                            </div>
-                        `;
+                        html += `<div class="channel-metric-item"><div class="channel-name">${channel}</div><div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div><div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div><div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div></div>`;
                     });
                     container.innerHTML = html;
                 };
@@ -737,11 +754,9 @@
                 const updatePipelineWidgets = (data) => {
                     const stageContainer = document.getElementById('stage-pipeline-container');
                     const evolutionContainer = document.getElementById('evolution-pipeline-container');
-
                     const stages = ['R1', 'R2', 'R3', 'R4'];
                     const stageCounts = stages.map(stage => data.filter(act => act.type === stage).length);
                     const maxStageCount = Math.max(...stageCounts, 1);
-
                     let stageHTML = '';
                     stages.forEach((stage, index) => {
                         const count = stageCounts[index];
@@ -749,11 +764,9 @@
                         stageHTML += `<div class="pipeline-item"><div class="pipeline-label">${stage}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
                     });
                     stageContainer.innerHTML = stageHTML;
-
                     const evolutions = ['De R1 para R2', 'De R2 para R3', 'De R3 para R4'];
                     const evolutionCounts = evolutions.map(evo => data.filter(act => act.evolution === evo).length);
                     const maxEvolutionCount = Math.max(...evolutionCounts, 1);
-
                     let evolutionHTML = '';
                     evolutions.forEach((evo, index) => {
                         const count = evolutionCounts[index];
@@ -837,7 +850,7 @@
                 
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const headerData = { date: document.getElementById('date-form').value, closer: document.getElementById('closer-name-form').value };
+                    const headerData = { date: document.getElementById('date-form').value, closer: userName, closer_id: userId };
                     const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
                     const newActivitiesPayload = [];
                     
@@ -971,23 +984,28 @@
                     updateAllData();
                 };
 
-                const populateCloserFilters = () => {
-                    let closers = [...new Set(activities.map(act => act.closer).filter(Boolean))];
+                const populateCloserFilters = async () => {
+                    const { data: profiles, error } = await supabaseClient.from('profiles').select('full_name');
                     
-                    if (closers.length === 0) {
-                        closers = ['Yuri Garcia', 'Pedro Costa']; 
+                    if (error) {
+                        console.error('Erro ao buscar perfis:', error);
+                        showNotification('Não foi possível carregar a lista de closers.', 'error');
+                        return;
                     }
+
+                    const closers = profiles.map(p => p.full_name).filter(Boolean);
                     
                     userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
-                    closerNameForm.innerHTML = '';
                     propostasCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
 
                     closers.forEach(closer => {
                         const optionHTML = `<option value="${closer}">${closer}</option>`;
                         userFilter.innerHTML += optionHTML;
-                        closerNameForm.innerHTML += optionHTML;
                         propostasCloserFilter.innerHTML += optionHTML;
                     });
+                    
+                    closerNameForm.innerHTML = `<option value="${userName}">${userName}</option>`;
+                    closerNameForm.disabled = true;
                 };
 
                 const renderPropostas = () => {
@@ -1089,6 +1107,16 @@
             };
 
             // --- Lógica de Autenticação ---
+            showSignupBtn.addEventListener('click', () => {
+                loginSection.style.display = 'none';
+                signupSection.style.display = 'flex';
+            });
+
+            showLoginBtn.addEventListener('click', () => {
+                signupSection.style.display = 'none';
+                loginSection.style.display = 'flex';
+            });
+
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('email').value;
@@ -1100,10 +1128,36 @@
                 });
 
                 if (error) {
-                    errorMessage.textContent = 'E-mail ou palavra-passe inválidos.';
-                    errorMessage.style.display = 'block';
+                    loginErrorMessage.textContent = 'E-mail ou palavra-passe inválidos.';
+                    loginErrorMessage.style.display = 'block';
                 } else {
-                    await startApp();
+                    await startApp(data.user);
+                }
+            });
+            
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('signup-name').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: name
+                        }
+                    }
+                });
+
+                if (error) {
+                    signupErrorMessage.textContent = error.message;
+                    signupErrorMessage.style.display = 'block';
+                } else {
+                    showNotification('Registo efetuado com sucesso! Por favor, faça login.', 'success');
+                    signupSection.style.display = 'none';
+                    loginSection.style.display = 'flex';
                 }
             });
 
@@ -1111,7 +1165,7 @@
             const checkSession = async () => {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
-                    await startApp();
+                    await startApp(session.user);
                 } else {
                     loginSection.style.display = 'flex';
                     appSection.style.display = 'none';
