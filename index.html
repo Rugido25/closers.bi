@@ -1066,6 +1066,18 @@
                             const ultimaProposta = propostasDoLead[0];
                             const card = document.createElement('div');
                             card.className = 'proposal-card';
+                            
+                            const isOwner = ultimaProposta.closer_id === userId;
+                            let actionsHTML = '';
+                            if (isOwner) {
+                                actionsHTML = `
+                                    <div class="proposal-actions">
+                                        <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
+                                        <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
+                                    </div>
+                                `;
+                            }
+
                             card.innerHTML = `
                                 <div class="proposal-info">
                                     <div class="lead-name">${ultimaProposta.lead}</div>
@@ -1073,10 +1085,7 @@
                                         Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
                                     </div>
                                 </div>
-                                <div class="proposal-actions">
-                                    <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
-                                    <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
-                                </div>
+                                ${actionsHTML}
                             `;
                             propostasContainer.appendChild(card);
                         }
