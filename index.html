@@ -982,7 +982,7 @@
 
                 if (error) {
                     console.error('Erro ao salvar:', error);
-                    showNotification('Falha ao salvar os lançamentos.', 'error');
+                    showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
                 } else {
                     showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
                     lancamentosContainer.innerHTML = '';
@@ -1053,7 +1053,7 @@
 
                 if (error) {
                     console.error('Erro ao atualizar:', error);
-                    showNotification('Falha ao salvar as alterações.', 'error');
+                    showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error');
                 } else {
                     showNotification('Alterações salvas com sucesso!', 'success');
                     closeEditModal();
