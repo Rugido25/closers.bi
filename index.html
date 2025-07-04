@@ -414,6 +414,55 @@
         #notification-modal .modal-content.success { border-left: 5px solid var(--success-color); }
         #notification-modal .modal-content.error { border-left: 5px solid var(--error-color); }
 
+        /* --- Estilos da Aba Propostas --- */
+        .proposal-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+        }
+        .proposal-info {
+            flex-grow: 1;
+        }
+        .proposal-info .lead-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+        }
+        .proposal-info .details {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        .proposal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .proposal-actions button {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s ease;
+        }
+        .proposal-actions button:hover {
+            opacity: 0.8;
+        }
+        .btn-ganha {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .btn-perdida {
+            background-color: var(--error-color);
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -424,6 +473,7 @@
             <nav>
                 <a href="#" class="nav-link active" data-target="dashboard">Dashboard</a>
                 <a href="#" class="nav-link" data-target="diario">Diário</a>
+                <a href="#" class="nav-link" data-target="propostas">Propostas</a>
                 <a href="#" class="nav-link" data-target="historico">Histórico</a>
             </nav>
             <div class="header-actions">
@@ -551,6 +601,18 @@
                 </form>
             </section>
 
+            <section id="propostas" class="content-section">
+                <div class="page-header">
+                    <div>
+                        <h2>Propostas em Aberto</h2>
+                        <p>Converta propostas em vendas ou perdas.</p>
+                    </div>
+                </div>
+                <div id="propostas-container">
+                    <!-- Propostas em aberto serão inseridas aqui -->
+                </div>
+            </section>
+
             <section id="historico" class="content-section">
                 <div class="page-header">
                     <h2>Histórico de Atividades</h2>
@@ -626,6 +688,7 @@
             const navLinks = document.querySelectorAll('.nav-link');
             const contentSections = document.querySelectorAll('.content-section');
             const historyContainer = document.getElementById('history-table-container');
+            const propostasContainer = document.getElementById('propostas-container');
             const form = document.getElementById('activity-form');
             const lancamentosContainer = document.getElementById('lancamentos-container');
             const addLancamentoBtn = document.getElementById('add-lancamento-btn');
@@ -778,6 +841,7 @@
                 updateRanking(filteredData);
                 updatePipelineWidgets(filteredData);
                 updateChannelMetrics(filteredData);
+                renderPropostas(filteredData);
             };
 
             const updateDashboard = (data) => {
@@ -1100,7 +1164,12 @@
             };
 
             const populateCloserFilters = () => {
-                const closers = [...new Set(activities.map(act => act.closer).filter(Boolean))];
+                let closers = [...new Set(activities.map(act => act.closer).filter(Boolean))];
+                
+                // Se não houver closers nos dados, usa uma lista padrão.
+                if (closers.length === 0) {
+                    closers = ['Yuri Garcia', 'Pedro Costa']; 
+                }
                 
                 // Limpa os filtros antes de popular
                 userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
@@ -1112,6 +1181,74 @@
                     closerNameForm.innerHTML += optionHTML;
                 });
             };
+
+            // --- Lógica da Aba Propostas ---
+            const renderPropostas = (data) => {
+                propostasContainer.innerHTML = '';
+
+                const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
+                const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
+                const leadsAbertos = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
+
+                if (leadsAbertos.length === 0) {
+                    propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto.</p>';
+                    return;
+                }
+
+                leadsAbertos.forEach(lead => {
+                    const propostasDoLead = data
+                        .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+                    
+                    if (propostasDoLead.length > 0) {
+                        const ultimaProposta = propostasDoLead[0];
+                        const card = document.createElement('div');
+                        card.className = 'proposal-card';
+                        card.innerHTML = `
+                            <div class="proposal-info">
+                                <div class="lead-name">${ultimaProposta.lead}</div>
+                                <div class="details">
+                                    Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+                                </div>
+                            </div>
+                            <div class="proposal-actions">
+                                <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
+                                <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
+                            </div>
+                        `;
+                        propostasContainer.appendChild(card);
+                    }
+                });
+            };
+
+            propostasContainer.addEventListener('click', async (e) => {
+                const button = e.target;
+                const id = button.dataset.id;
+                if (!id) return;
+
+                let newStatus = '';
+                let updatedData = {};
+
+                if (button.classList.contains('btn-ganha')) {
+                    newStatus = 'Venda Ganhada';
+                    updatedData = { status: newStatus, sale_value: parseFloat(button.dataset.value) };
+                } else if (button.classList.contains('btn-perdida')) {
+                    newStatus = 'Venda Perdida';
+                    updatedData = { status: newStatus };
+                } else {
+                    return;
+                }
+
+                const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                if (error) {
+                    showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
+                } else {
+                    showNotification(`Proposta marcada como "${newStatus}" com sucesso!`, 'success');
+                    await fetchActivities();
+                }
+            });
+
 
             // --- Event Listeners para Filtros ---
             userFilter.addEventListener('change', updateAllData);
