@@ -685,6 +685,7 @@
                         return;
                     }
                     activities = data;
+                    await populateCloserFilters();
                     updateAllData();
                     renderTable();
                 }
