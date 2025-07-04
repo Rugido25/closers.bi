@@ -782,11 +782,11 @@
 
             const updateDashboard = (data) => {
                 const vendas = data.filter(act => act.status === 'Venda Ganhada');
-                const receitaTotal = vendas.reduce((sum, act) => sum + (act.saleValue || 0), 0);
+                const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                 
                 document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
                 document.getElementById('kpi-vendas').textContent = vendas.length;
-                document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposalSent === 'Sim').length;
+                document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
                 document.getElementById('kpi-perdidas').textContent = data.filter(act => act.status === 'Venda Perdida').length;
                 document.getElementById('kpi-reunioes-totais').textContent = data.length;
                 document.getElementById('kpi-qualificadas').textContent = data.filter(act => act.qualification === 'Qualificado').length;
@@ -795,13 +795,13 @@
                 document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
                 document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
 
-                const leadsComProposta = new Set(data.filter(act => act.proposalSent === 'Sim').map(act => act.lead));
+                const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
                 const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
                 const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
                 let valorPropostasAbertas = 0;
                 leadsAbertosComProposta.forEach(lead => {
-                    const propostasDoLead = data.filter(act => act.lead === lead && act.proposalValue > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
-                    if (propostasDoLead.length > 0) { valorPropostasAbertas += propostasDoLead[0].proposalValue; }
+                    const propostasDoLead = data.filter(act => act.lead === lead && act.proposal_value > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
+                    if (propostasDoLead.length > 0) { valorPropostasAbertas += propostasDoLead[0].proposal_value; }
                 });
                 document.getElementById('kpi-propostas-aberto').innerHTML = formatCurrency(valorPropostasAbertas);
             };
@@ -814,7 +814,7 @@
                 channels.forEach(channel => {
                     const channelData = data.filter(act => act.channel === channel);
                     const channelSales = channelData.filter(act => act.status === 'Venda Ganhada');
-                    const channelRevenue = channelSales.reduce((sum, act) => sum + (act.saleValue || 0), 0);
+                    const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                     
                     html += `
                         <div class="channel-metric-item">
@@ -868,9 +868,9 @@
 
             const updateRanking = (data) => {
                 const rankingContainer = document.getElementById('ranking-container');
-                const salesByCloser = data.filter(act => act.status === 'Venda Ganhada' && act.saleValue > 0).reduce((acc, act) => {
+                const salesByCloser = data.filter(act => act.status === 'Venda Ganhada' && act.sale_value > 0).reduce((acc, act) => {
                     if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
-                    acc[act.closer].total += act.saleValue; acc[act.closer].count++; return acc;
+                    acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
                 }, {});
                 const sortedClosers = Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
                 let rankingHTML = '';
@@ -943,7 +943,7 @@
                 filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
                     const row = document.createElement('tr');
                     row.dataset.id = act.id; // Adiciona o ID para o clique
-                    row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.proposalValue ? formatCurrency(act.proposalValue) : 'N/A'}</td><td>${act.saleValue ? formatCurrency(act.saleValue) : 'N/A'}</td><td>${act.notes}</td>`;
+                    row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td>`;
                     finalTableBody.appendChild(row);
                 });
             };
@@ -963,12 +963,12 @@
                         type: document.getElementById(`activity-type-${blockId}`).value, 
                         status: document.getElementById(`activity-status-${blockId}`).value, 
                         evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
-                        saleValue: parseFloat(document.getElementById(`sale-value-${blockId}`).value) || null, 
-                        proposalValue: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
+                        sale_value: parseFloat(document.getElementById(`sale-value-${blockId}`).value) || null, 
+                        proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
                         notes: document.getElementById(`notes-${blockId}`).value,
                         qualification: document.getElementById(`qualification-${blockId}`).value,
                         company_revenue: document.getElementById(`revenue-${blockId}`).value,
-                        proposalSent: document.getElementById(`proposal-sent-${blockId}`).value,
+                        proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
                     };
                     if(newActivity.lead) newActivitiesPayload.push(newActivity);
                 });
@@ -1004,10 +1004,10 @@
                 document.getElementById('edit-qualification').value = activity.qualification;
                 document.getElementById('edit-activity-type').value = activity.type;
                 document.getElementById('edit-activity-status').value = activity.status;
-                document.getElementById('edit-proposal-sent').value = activity.proposalSent;
+                document.getElementById('edit-proposal-sent').value = activity.proposal_sent;
                 document.getElementById('edit-funnel-evolution').value = activity.evolution;
-                document.getElementById('edit-proposal-value').value = activity.proposalValue;
-                document.getElementById('edit-sale-value').value = activity.saleValue;
+                document.getElementById('edit-proposal-value').value = activity.proposal_value;
+                document.getElementById('edit-sale-value').value = activity.sale_value;
                 document.getElementById('edit-notes').value = activity.notes;
 
                 editModal.classList.add('visible');
@@ -1042,10 +1042,10 @@
                     qualification: document.getElementById('edit-qualification').value,
                     type: document.getElementById('edit-activity-type').value,
                     status: document.getElementById('edit-activity-status').value,
-                    proposalSent: document.getElementById('edit-proposal-sent').value,
+                    proposal_sent: document.getElementById('edit-proposal-sent').value,
                     evolution: document.getElementById('edit-funnel-evolution').value,
-                    proposalValue: parseFloat(document.getElementById('edit-proposal-value').value) || null,
-                    saleValue: parseFloat(document.getElementById('edit-sale-value').value) || null,
+                    proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
+                    sale_value: parseFloat(document.getElementById('edit-sale-value').value) || null,
                     notes: document.getElementById('edit-notes').value,
                 };
 
