@@ -264,6 +264,7 @@
         .proposal-card { background: var(--card-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; }
         .proposal-info { flex-grow: 1; }
         .proposal-info .lead-name { font-weight: 700; font-size: 1.1rem; color: var(--text-dark); }
+        .proposal-info .lead-name.editable { cursor: pointer; color: var(--highlight-pink); text-decoration: underline; }
         .proposal-info .details { font-size: 0.9rem; color: var(--text-light); }
         .proposal-actions { display: flex; gap: 10px; margin-top: 10px; }
         .proposal-actions button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s ease; }
@@ -405,7 +406,8 @@
                     </div>
 
                     <!-- Main Metrics -->
-                    <div class="kpi-card-small main-metric"><div class="title">Reuniões Totais</div><div class="value" id="kpi-reunioes-totais">0</div></div>
+                    <div class="kpi-card-small main-metric"><div class="title">Leads em Atendimento</div><div class="value" id="kpi-leads-atendimento">0</div></div>
+                    <div class="kpi-card-small main-metric"><div class="title">Total de Reuniões</div><div class="value" id="kpi-reunioes-totais">0</div></div>
                     <div class="kpi-card-small main-metric"><div class="title">Reuniões Realizadas</div><div class="value" id="kpi-realizadas">0</div></div>
                     <div class="kpi-card-small main-metric"><div class="title">Propostas Enviadas</div><div class="value" id="kpi-propostas">0</div></div>
                     <div class="kpi-card-small main-metric"><div class="title">Valor Proposta em Aberto</div><div class="value" id="kpi-propostas-aberto">R$ 0,00</div></div>
@@ -675,7 +677,7 @@
                     block.innerHTML = `
                         <button type="button" class="remove-lancamento-btn" data-target="${blockId}">X</button>
                         <div class="form-grid">
-                            <div class="form-group"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
+                            <div class="form-group" id="lead-container-${blockId}"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
                             <div class="form-group"><label for="bdr-${blockId}">BDR</label><input type="text" id="bdr-${blockId}"></div>
                             <div class="form-group"><label for="revenue-${blockId}">Faturamento da Empresa</label>
                                 <select id="revenue-${blockId}">
@@ -689,17 +691,48 @@
                             <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
                             <div class="form-group"><label for="qualification-${blockId}">Qualificação</label><select id="qualification-${blockId}"><option>Qualificado</option><option>Não Qualificado</option></select></div>
                             <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option></select></div>
+                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option></select></div>
                             <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option><option>Venda Ganhada</option><option>Venda Perdida</option></select></div>
                             <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
+                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option></select></div>
                             <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
                             <div class="form-group"><label for="sale-value-${blockId}">Valor da Venda (R$)</label><input type="number" id="sale-value-${blockId}" placeholder="5000"></div>
                             <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
                         </div>
                     `;
                     lancamentosContainer.appendChild(block);
+
+                    const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
+                    activityTypeSelect.addEventListener('change', () => updateLeadInput(blockId, activityTypeSelect.value));
                 };
+
+                const updateLeadInput = (blockId, meetingType) => {
+                    const leadContainer = document.getElementById(`lead-container-${blockId}`);
+                    const currentLeadInput = document.getElementById(`lead-name-${blockId}`);
+                    
+                    let eligibleLeads = [];
+                    if (meetingType === 'R2') {
+                        const leadsInR1 = new Set(activities.filter(act => act.type === 'R1').map(act => act.lead));
+                        const closedLeads = new Set(activities.filter(act => ['R2', 'R3', 'Venda Ganhada', 'Venda Perdida'].includes(act.status) || ['R2', 'R3'].includes(act.type)).map(act => act.lead));
+                        eligibleLeads = [...leadsInR1].filter(lead => !closedLeads.has(lead));
+                    } else if (meetingType === 'R3') {
+                        const leadsInR2 = new Set(activities.filter(act => act.type === 'R2').map(act => act.lead));
+                        const closedLeads = new Set(activities.filter(act => ['R3', 'Venda Ganhada', 'Venda Perdida'].includes(act.status) || act.type === 'R3').map(act => act.lead));
+                        eligibleLeads = [...leadsInR2].filter(lead => !closedLeads.has(lead));
+                    }
+
+                    if (eligibleLeads.length > 0) {
+                        currentLeadInput.outerHTML = `
+                            <select id="lead-name-${blockId}" required>
+                                <option value="">Selecione um Lead</option>
+                                ${eligibleLeads.map(lead => `<option value="${lead}">${lead}</option>`).join('')}
+                            </select>
+                        `;
+                    } else {
+                         currentLeadInput.outerHTML = `<input type="text" id="lead-name-${blockId}" required>`;
+                    }
+                };
+
 
                 addLancamentoBtn.addEventListener('click', createLancamentoBlock);
                 lancamentosContainer.addEventListener('click', (e) => {
@@ -755,11 +788,13 @@
                     document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
                     document.getElementById('kpi-reunioes-resgatadas').textContent = data.filter(act => act.reuniao_resgatada === 'Sim').length;
                     document.getElementById('kpi-perdidas').textContent = data.filter(act => act.status === 'Venda Perdida').length;
-                    document.getElementById('kpi-reunioes-totais').textContent = data.length;
+                    const leadsComReuniao = new Set(data.filter(act => act.type && act.type.startsWith('R')).map(act => act.lead));
+                    document.getElementById('kpi-leads-atendimento').textContent = leadsComReuniao.size;
+                    document.getElementById('kpi-reunioes-totais').textContent = data.filter(act => act.type && act.type.startsWith('R')).length;
+                    document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
                     document.getElementById('kpi-qualificadas').textContent = data.filter(act => act.qualification === 'Qualificado').length;
                     document.getElementById('kpi-desqualificadas').textContent = data.filter(act => act.qualification === 'Não Qualificado').length;
                     document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
-                    document.getElementById('kpi-realizadas').textContent = data.filter(act => act.status === 'Reunião Realizada').length;
                     document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
                     const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
                     const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
@@ -788,8 +823,8 @@
                 const updatePipelineWidgets = (data) => {
                     const stageContainer = document.getElementById('stage-pipeline-container');
                     const evolutionContainer = document.getElementById('evolution-pipeline-container');
-                    const stages = ['R1', 'R2', 'R3', 'R4'];
-                    const stageCounts = stages.map(stage => data.filter(act => act.type === stage).length);
+                    const stages = ['R1', 'R2', 'R3'];
+                    const stageCounts = stages.map(stage => new Set(data.filter(act => act.type === stage).map(act => act.lead)).size);
                     const maxStageCount = Math.max(...stageCounts, 1);
                     let stageHTML = '';
                     stages.forEach((stage, index) => {
@@ -798,7 +833,7 @@
                         stageHTML += `<div class="pipeline-item"><div class="pipeline-label">${stage}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
                     });
                     stageContainer.innerHTML = stageHTML;
-                    const evolutions = ['De R1 para R2', 'De R2 para R3', 'De R3 para R4'];
+                    const evolutions = ['De R1 para R2', 'De R2 para R3'];
                     const evolutionCounts = evolutions.map(evo => data.filter(act => act.evolution === evo).length);
                     const maxEvolutionCount = Math.max(...evolutionCounts, 1);
                     let evolutionHTML = '';
@@ -1079,10 +1114,13 @@
                                     </div>
                                 `;
                             }
+                            
+                            const leadNameClass = isOwner ? 'lead-name editable' : 'lead-name';
+                            const leadNameDataId = isOwner ? `data-id="${ultimaProposta.id}"` : '';
 
                             card.innerHTML = `
                                 <div class="proposal-info">
-                                    <div class="lead-name">${ultimaProposta.lead}</div>
+                                    <div class="${leadNameClass}" ${leadNameDataId}>${ultimaProposta.lead}</div>
                                     <div class="details">
                                         Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
                                     </div>
@@ -1095,7 +1133,19 @@
                 };
 
                 propostasContainer.addEventListener('click', async (e) => {
-                    const button = e.target;
+                    const target = e.target;
+                    
+                    // Lógica para editar
+                    if (target.classList.contains('editable')) {
+                        const id = target.dataset.id;
+                        openEditModal(id);
+                        return;
+                    }
+
+                    // Lógica para marcar como ganha/perdida
+                    const button = target.closest('button');
+                    if (!button) return;
+
                     const id = button.dataset.id;
                     if (!id) return;
 
