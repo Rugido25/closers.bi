@@ -271,6 +271,7 @@
         .proposal-actions button:hover { opacity: 0.8; }
         .btn-ganha { background-color: var(--success-color); color: white; }
         .btn-perdida { background-color: var(--error-color); color: white; }
+        .end-deal-btn { background-color: var(--text-light); color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; }
 
         @media (min-width: 768px) { /* Tablets */
             .kpi-card-large { grid-column: span 6; }
@@ -527,7 +528,7 @@
                     <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
                     <div class="form-group"><label for="edit-qualification">Qualificação</label><select id="edit-qualification"><option>Qualificado</option><option>Não Qualificado</option></select></div>
                     <div class="form-group"><label for="edit-activity-type">Tipo de Reunião</label><select id="edit-activity-type"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option></select></div>
-                    <div class="form-group"><label for="edit-activity-status">Status da Atividade</label><select id="edit-activity-status"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option><option>Venda Ganhada</option><option>Venda Perdida</option></select></div>
+                    <div class="form-group"><label for="edit-activity-status">Status da Atividade</label><select id="edit-activity-status"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
                     <div class="form-group"><label for="edit-proposal-sent">Proposta Enviada?</label><select id="edit-proposal-sent"><option>Não</option><option>Sim</option></select></div>
                     <div class="form-group"><label for="edit-reuniao-resgatada">Reunião Resgatada?</label><select id="edit-reuniao-resgatada"><option>Não</option><option>Sim</option></select></div>
                     <div class="form-group"><label for="edit-funnel-evolution">Evolução no Funil</label><select id="edit-funnel-evolution"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
@@ -692,7 +693,7 @@
                             <div class="form-group"><label for="qualification-${blockId}">Qualificação</label><select id="qualification-${blockId}"><option>Qualificado</option><option>Não Qualificado</option></select></div>
                             <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
                             <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option></select></div>
-                            <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option><option>Venda Ganhada</option><option>Venda Perdida</option></select></div>
+                            <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
                             <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
                             <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option></select></div>
                             <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
@@ -712,13 +713,11 @@
                     
                     let eligibleLeads = [];
                     if (meetingType === 'R2') {
-                        const leadsInR1 = new Set(activities.filter(act => act.type === 'R1').map(act => act.lead));
-                        const closedLeads = new Set(activities.filter(act => ['R2', 'R3', 'Venda Ganhada', 'Venda Perdida'].includes(act.status) || ['R2', 'R3'].includes(act.type)).map(act => act.lead));
-                        eligibleLeads = [...leadsInR1].filter(lead => !closedLeads.has(lead));
+                        const leadsInR1 = new Set(activities.filter(act => act.type === 'R1' && !act.deal_outcome).map(act => act.lead));
+                        eligibleLeads = [...leadsInR1];
                     } else if (meetingType === 'R3') {
-                        const leadsInR2 = new Set(activities.filter(act => act.type === 'R2').map(act => act.lead));
-                        const closedLeads = new Set(activities.filter(act => ['R3', 'Venda Ganhada', 'Venda Perdida'].includes(act.status) || act.type === 'R3').map(act => act.lead));
-                        eligibleLeads = [...leadsInR2].filter(lead => !closedLeads.has(lead));
+                        const leadsInR2 = new Set(activities.filter(act => act.type === 'R2' && !act.deal_outcome).map(act => act.lead));
+                        eligibleLeads = [...leadsInR2];
                     }
 
                     if (eligibleLeads.length > 0) {
@@ -781,13 +780,13 @@
                 };
 
                 const updateDashboard = (data) => {
-                    const vendas = data.filter(act => act.status === 'Venda Ganhada');
+                    const vendas = data.filter(act => act.deal_outcome === 'Ganha');
                     const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                     document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
                     document.getElementById('kpi-vendas').textContent = vendas.length;
                     document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
                     document.getElementById('kpi-reunioes-resgatadas').textContent = data.filter(act => act.reuniao_resgatada === 'Sim').length;
-                    document.getElementById('kpi-perdidas').textContent = data.filter(act => act.status === 'Venda Perdida').length;
+                    document.getElementById('kpi-perdidas').textContent = data.filter(act => act.deal_outcome === 'Perdida').length;
                     const leadsComReuniao = new Set(data.filter(act => act.type && act.type.startsWith('R')).map(act => act.lead));
                     document.getElementById('kpi-leads-atendimento').textContent = leadsComReuniao.size;
                     document.getElementById('kpi-reunioes-totais').textContent = data.filter(act => act.type && act.type.startsWith('R')).length;
@@ -797,7 +796,7 @@
                     document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
                     document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
                     const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
-                    const leadsFechados = new Set(data.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
+                    const leadsFechados = new Set(data.filter(act => act.deal_outcome).map(act => act.lead));
                     const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
                     let valorPropostasAbertas = 0;
                     leadsAbertosComProposta.forEach(lead => {
@@ -813,7 +812,7 @@
                     let html = '';
                     channels.forEach(channel => {
                         const channelData = data.filter(act => act.channel === channel);
-                        const channelSales = channelData.filter(act => act.status === 'Venda Ganhada');
+                        const channelSales = channelData.filter(act => act.deal_outcome === 'Ganha');
                         const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                         html += `<div class="channel-metric-item"><div class="channel-name">${channel}</div><div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div><div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div><div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div></div>`;
                     });
@@ -847,7 +846,7 @@
 
                 const updateRanking = (data) => {
                     const rankingContainer = document.getElementById('ranking-container');
-                    const salesByCloser = data.filter(act => act.status === 'Venda Ganhada' && act.sale_value > 0).reduce((acc, act) => {
+                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganhada' && act.sale_value > 0).reduce((acc, act) => {
                         if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
                         acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
                     }, {});
@@ -867,7 +866,7 @@
                         historyContainer.innerHTML = `
                             <table>
                                 <thead>
-                                    <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th></tr>
+                                    <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Resultado</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th><th>Ações</th></tr>
                                     <tr class="table-filters">
                                         <td><input type="date" class="history-filter" data-key="date"></td>
                                         <td><select class="history-filter" data-key="closer"></select></td>
@@ -878,9 +877,11 @@
                                         <td><select class="history-filter" data-key="qualification"></select></td>
                                         <td><select class="history-filter" data-key="status"></select></td>
                                         <td><select class="history-filter" data-key="reuniao_resgatada"><option value="">Todos</option><option>Sim</option><option>Não</option></select></td>
+                                        <td><select class="history-filter" data-key="deal_outcome"><option value="">Todos</option><option>Ganha</option><option>Perdida</option></select></td>
                                         <td></td>
                                         <td></td>
                                         <td><input type="text" class="history-filter" data-key="notes" placeholder="Filtrar..."></td>
+                                        <td></td>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -913,7 +914,11 @@
                     filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
                         const row = document.createElement('tr');
                         row.dataset.id = act.id;
-                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td>`;
+                        
+                        const isOwner = act.closer_id === userId;
+                        const endButtonHTML = isOwner && !act.deal_outcome ? `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>` : '';
+
+                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td><td>${endButtonHTML}</td>`;
                         finalTableBody.appendChild(row);
                     });
                 };
@@ -986,10 +991,35 @@
                     editModal.classList.remove('visible');
                 };
 
-                historyContainer.addEventListener('click', (e) => {
-                    const row = e.target.closest('tr');
-                    if (row && row.dataset.id) {
+                historyContainer.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    
+                    const row = target.closest('tr');
+                    if (row && !target.classList.contains('end-deal-btn')) {
                         openEditModal(row.dataset.id);
+                        return;
+                    }
+
+                    if (target.classList.contains('end-deal-btn')) {
+                        const leadName = target.dataset.lead;
+                        const leadActivities = activities
+                            .filter(act => act.lead === leadName)
+                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                        
+                        if (leadActivities.length > 0) {
+                            const latestActivity = leadActivities[0];
+                            const { error } = await supabaseClient
+                                .from('activities')
+                                .update({ deal_outcome: 'Perdida' })
+                                .eq('id', latestActivity.id);
+
+                            if (error) {
+                                showNotification(`Falha ao finalizar a negociação: ${error.message}`, 'error');
+                            } else {
+                                showNotification(`Negociação com ${leadName} foi finalizada.`, 'success');
+                                await fetchActivities();
+                            }
+                        }
                     }
                 });
 
@@ -1085,16 +1115,14 @@
                     propostasContainer.innerHTML = '';
                     const selectedCloser = propostasCloserFilter.value;
                     const dataToFilter = (selectedCloser === 'all') ? activities : activities.filter(act => act.closer === selectedCloser);
-                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
-                    const leadsFechados = new Set(dataToFilter.filter(act => act.status === 'Venda Ganhada' || act.status === 'Venda Perdida').map(act => act.lead));
-                    const leadsAbertos = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
+                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim' && !act.deal_outcome).map(act => act.lead));
 
-                    if (leadsAbertos.length === 0) {
+                    if (leadsComProposta.size === 0) {
                         propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto para o filtro selecionado.</p>';
                         return;
                     }
 
-                    leadsAbertos.forEach(lead => {
+                    leadsComProposta.forEach(lead => {
                         const propostasDoLead = dataToFilter
                             .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
                             .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1135,29 +1163,26 @@
                 propostasContainer.addEventListener('click', async (e) => {
                     const target = e.target;
                     
-                    // Lógica para editar
                     if (target.classList.contains('editable')) {
                         const id = target.dataset.id;
                         openEditModal(id);
                         return;
                     }
 
-                    // Lógica para marcar como ganha/perdida
                     const button = target.closest('button');
                     if (!button) return;
 
                     const id = button.dataset.id;
                     if (!id) return;
 
-                    let newStatus = '';
                     let updatedData = {};
+                    let newActivity = {};
+                    const originalActivity = activities.find(act => act.id == id);
 
                     if (button.classList.contains('btn-ganha')) {
-                        newStatus = 'Venda Ganhada';
-                        updatedData = { status: newStatus, sale_value: parseFloat(button.dataset.value) };
+                        updatedData = { deal_outcome: 'Ganhada', sale_value: parseFloat(button.dataset.value) };
                     } else if (button.classList.contains('btn-perdida')) {
-                        newStatus = 'Venda Perdida';
-                        updatedData = { status: newStatus };
+                        updatedData = { deal_outcome: 'Perdida' };
                     } else {
                         return;
                     }
@@ -1167,7 +1192,7 @@
                     if (error) {
                         showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
                     } else {
-                        showNotification(`Proposta marcada como "${newStatus}" com sucesso!`, 'success');
+                        showNotification(`Proposta atualizada com sucesso!`, 'success');
                         await fetchActivities();
                     }
                 });
