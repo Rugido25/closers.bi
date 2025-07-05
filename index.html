@@ -18,6 +18,17 @@
             --border-color: #E2E8F0;
             --success-color: #48BB78;
             --error-color: #F56565;
+            --form-bg: #FAFBFF;
+        }
+
+        body.dark-mode {
+            --header-bg: #1A202C;
+            --main-bg: #171923;
+            --card-bg: #2D3748;
+            --text-dark: #F7FAFC;
+            --text-light: #A0AEC0;
+            --border-color: #4A5568;
+            --form-bg: #1A202C;
         }
 
         * {
@@ -28,8 +39,10 @@
 
         body {
             background-color: var(--main-bg);
+            color: var(--text-dark);
             font-family: 'Roboto', sans-serif;
             margin: 0;
+            transition: background-color 0.3s, color 0.3s;
         }
         
         /* --- Secção de Login/Registo --- */
@@ -76,6 +89,8 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 1rem;
+            background-color: var(--main-bg);
+            color: var(--text-dark);
         }
         .auth-container button {
             width: 100%;
@@ -119,6 +134,7 @@
             justify-content: space-between;
             height: 64px;
             flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
         }
         header .logo { font-size: 1.5rem; font-weight: 700; }
         header .logo span { color: var(--highlight-pink); }
@@ -138,6 +154,25 @@
         header .nav-link.active { background-color: var(--highlight-pink); color: white; }
         header .header-actions { display: flex; align-items: center; gap: 20px; }
         header .user-display-name { font-weight: 500; }
+        
+        #theme-toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #E2E8F0;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #theme-toggle-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        #theme-toggle-btn .sun-icon { display: none; }
+        body.dark-mode #theme-toggle-btn .moon-icon { display: none; }
+        body.dark-mode #theme-toggle-btn .sun-icon { display: block; }
+
         header .action-button {
             background: transparent;
             border: 1px solid var(--text-light);
@@ -187,6 +222,7 @@
             border-radius: 6px;
             border: 1px solid var(--border-color);
             background: var(--card-bg);
+            color: var(--text-dark);
             font-family: 'Roboto', sans-serif;
             font-size: 0.9rem;
         }
@@ -196,40 +232,102 @@
         /* --- Dashboard --- */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(12, 1fr);
+            grid-template-columns: 1fr;
             gap: 24px;
         }
-        .kpi-card-large, .kpi-card-small, .widget {
-            grid-column: span 12; /* Default para mobile */
+        
+        .kpi-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
-        .kpi-card-small { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); }
-        .kpi-card-small .title { color: var(--text-light); margin-bottom: 4px; font-size: 0.9rem; font-weight: 500; }
-        .kpi-card-small .value { font-size: 2rem; font-weight: 700; }
-        .kpi-card-large { background: var(--card-bg); padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); text-align: center; }
-        .kpi-card-large .title { color: var(--text-dark); margin-bottom: 12px; padding-bottom: 12px; font-size: 1.2rem; font-weight: 700; border-bottom: 1px solid var(--border-color); }
-        .kpi-card-large .value { font-size: 2.5rem; font-weight: 700; color: var(--highlight-pink) }
-        .widget { background: var(--card-bg); padding: 24px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
-        .widget h3 { margin: 0 0 20px 0; font-size: 1.2rem; font-weight: 700; color: var(--text-dark); padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
-        .ranking-widget { grid-column: 1 / -1; }
+
+        .kpi-card-small { 
+            background: var(--card-bg); 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+        }
+        .kpi-card-small .title { 
+            color: var(--text-light); 
+            margin-bottom: 4px; 
+            font-size: 0.9rem; 
+            font-weight: 500; 
+        }
+        .kpi-card-small .value { 
+            font-size: 2rem; 
+            font-weight: 700; 
+            color: var(--text-dark);
+        }
+
+        .kpi-large-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .kpi-card-large { 
+            background: var(--card-bg); 
+            padding: 24px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
+            text-align: center; 
+        }
+        .kpi-card-large .title { 
+            color: var(--text-dark); 
+            margin-bottom: 12px; 
+            padding-bottom: 12px; 
+            font-size: 1.2rem; 
+            font-weight: 700; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        .kpi-card-large .value { 
+            font-size: 2.5rem; 
+            font-weight: 700; 
+            color: var(--highlight-pink);
+        }
+
+        .widget { 
+            background: var(--card-bg); 
+            padding: 24px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); 
+        }
+        .widget h3 { 
+            margin: 0 0 20px 0; 
+            font-size: 1.2rem; 
+            font-weight: 700; 
+            color: var(--text-dark); 
+            padding-bottom: 12px; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+
         .ranking-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
         .ranking-item .rank { font-size: 1rem; font-weight: 700; color: var(--text-light); width: 20px; }
         .ranking-item .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--main-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; }
         .ranking-item .info .name { font-weight: 500; }
         .ranking-item .info .details { color: var(--text-light); font-size: 0.9rem; }
         .ranking-item .value { margin-left: auto; font-weight: 700; font-size: 1.1rem; }
-        .pipeline-widget { grid-column: 1 / -1; }
+        
+        .pipeline-widget-grid {
+             display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
         .pipeline-item { display: grid; grid-template-columns: 100px 1fr 40px; gap: 15px; align-items: center; margin-bottom: 16px; }
         .pipeline-label { color: var(--text-light); font-weight: 500; text-align: right; }
         .pipeline-bar-bg { width: 100%; height: 12px; background-color: var(--main-bg); border-radius: 6px; }
         .pipeline-bar-fg { height: 100%; background-color: var(--highlight-pink); border-radius: 6px; transition: width 0.5s ease-out; }
         .pipeline-value { font-weight: 700; text-align: left; }
+        
         .channel-metrics-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .channel-metric-item { text-align: center; padding: 15px; background: #F7FAFC; border-radius: 6px; }
+        .channel-metric-item { text-align: center; padding: 15px; background: var(--form-bg); border-radius: 6px; }
         .channel-metric-item .channel-name { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; }
         .channel-metric-item .metric { display: flex; justify-content: space-between; font-size: 1rem; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
         .channel-metric-item .metric:last-child { border-bottom: none; }
         .channel-metric-item .metric-label { color: var(--text-light); }
         .channel-metric-item .metric-value { font-weight: 700; }
+
         form { max-width: 900px; margin: 0 auto; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-group { display: flex; flex-direction: column; }
@@ -239,16 +337,16 @@
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--highlight-pink); box-shadow: 0 0 0 2px rgba(229, 62, 117, 0.2); }
         textarea { resize: vertical; min-height: 80px; }
         .form-section-divider { border-top: 1px solid var(--border-color); margin: 30px 0; }
-        .lancamento-block { background: #FAFBFF; border: 1px dashed var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; position: relative; }
+        .lancamento-block { background: var(--form-bg); border: 1px dashed var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; position: relative; }
         .remove-lancamento-btn { position: absolute; top: 10px; right: 10px; background: #E2E8F0; color: var(--text-light); border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-weight: bold; }
         .add-lancamento-btn { background: transparent; border: 1px dashed var(--text-light); color: var(--text-light); padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; margin-bottom: 20px; }
         button[type="submit"] { background: var(--highlight-pink); color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 700; width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #F7FAFC; font-weight: 500; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
+        th { background-color: var(--main-bg); font-weight: 500; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
         td { color: var(--text-dark); }
         tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
-        tbody tr:hover { background-color: #EDF2F7; }
+        tbody tr:hover { background-color: var(--header-bg); }
         .table-filters input, .table-filters select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
@@ -272,19 +370,6 @@
         .btn-ganha { background-color: var(--success-color); color: white; }
         .btn-perdida { background-color: var(--error-color); color: white; }
         .end-deal-btn { background-color: var(--text-light); color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; }
-
-        @media (min-width: 768px) { /* Tablets */
-            .kpi-card-large { grid-column: span 6; }
-            .kpi-card-small { grid-column: span 3; }
-            .widget.pipeline-widget { grid-column: span 6; }
-        }
-
-        @media (min-width: 1200px) { /* Desktops */
-            .kpi-card-large { grid-column: span 6; }
-            .kpi-card-small.main-metric { grid-column: span 3; }
-            .kpi-card-small.secondary-metric { grid-column: span 4; }
-            .widget.pipeline-widget { grid-column: span 6; }
-        }
     </style>
 </head>
 <body>
@@ -337,12 +422,28 @@
         <header>
             <div class="logo">Grupo <span>Rugido</span></div>
             <nav>
-                <a href="#" class="nav-link active" data-target="dashboard">Dashboard</a>
-                <a href="#" class="nav-link" data-target="diario">Diário</a>
-                <a href="#" class="nav-link" data-target="propostas">Propostas</a>
-                <a href="#" class="nav-link" data-target="historico">Histórico</a>
+                <a href="#" class="nav-link active" data-target="dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link" data-target="diario">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Diário
+                </a>
+                <a href="#" class="nav-link" data-target="propostas">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Propostas
+                </a>
+                <a href="#" class="nav-link" data-target="historico">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Histórico
+                </a>
             </nav>
             <div class="header-actions">
+                <button id="theme-toggle-btn">
+                     <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                </button>
                 <span id="user-display-name" class="user-display-name"></span>
                 <button id="logout-button" class="action-button">Sair</button>
                 <div class="profile-icon">
@@ -395,44 +496,46 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="dashboard-grid">
-                    <!-- Big Numbers -->
-                    <div class="kpi-card-large">
-                        <div class="title">Valor Total Vendido</div>
-                        <div class="value" id="kpi-valor-vendas">R$ 0,00</div>
-                    </div>
-                    <div class="kpi-card-large">
-                        <div class="title">Negócios Ganhos</div>
-                        <div class="value" id="kpi-vendas">0</div>
+                    <div class="kpi-large-grid">
+                        <div class="kpi-card-large">
+                            <div class="title">Valor Total Vendido</div>
+                            <div class="value" id="kpi-valor-vendas">R$ 0,00</div>
+                        </div>
+                        <div class="kpi-card-large">
+                            <div class="title">Negócios Ganhos</div>
+                            <div class="value" id="kpi-vendas">0</div>
+                        </div>
                     </div>
 
-                    <!-- Main Metrics -->
-                    <div class="kpi-card-small main-metric"><div class="title">Leads em Atendimento</div><div class="value" id="kpi-leads-atendimento">0</div></div>
-                    <div class="kpi-card-small main-metric"><div class="title">Total de Reuniões</div><div class="value" id="kpi-reunioes-totais">0</div></div>
-                    <div class="kpi-card-small main-metric"><div class="title">Reuniões Realizadas</div><div class="value" id="kpi-realizadas">0</div></div>
-                    <div class="kpi-card-small main-metric"><div class="title">Propostas Enviadas</div><div class="value" id="kpi-propostas">0</div></div>
-                    <div class="kpi-card-small main-metric"><div class="title">Valor Proposta em Aberto</div><div class="value" id="kpi-propostas-aberto">R$ 0,00</div></div>
-
-                    <!-- Secondary Metrics -->
-                    <div class="kpi-card-small secondary-metric"><div class="title">Qualificadas</div><div class="value" id="kpi-qualificadas">0</div></div>
-                    <div class="kpi-card-small secondary-metric"><div class="title">Desqualificadas</div><div class="value" id="kpi-desqualificadas">0</div></div>
-                    <div class="kpi-card-small secondary-metric"><div class="title">Reagendadas</div><div class="value" id="kpi-reagendadas">0</div></div>
-                    <div class="kpi-card-small secondary-metric"><div class="title">No Show</div><div class="value" id="kpi-no-show">0</div></div>
-                    <div class="kpi-card-small secondary-metric"><div class="title">Reuniões Resgatadas</div><div class="value" id="kpi-reunioes-resgatadas">0</div></div>
-                    <div class="kpi-card-small secondary-metric"><div class="title">Perdidas</div><div class="value" id="kpi-perdidas">0</div></div>
+                    <div class="kpi-grid">
+                        <div class="kpi-card-small"><div class="title">Leads em Atendimento</div><div class="value" id="kpi-leads-atendimento">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Total de Reuniões</div><div class="value" id="kpi-reunioes-totais">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Reuniões Realizadas</div><div class="value" id="kpi-realizadas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Propostas Enviadas</div><div class="value" id="kpi-propostas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Valor Proposta em Aberto</div><div class="value" id="kpi-propostas-aberto">R$ 0,00</div></div>
+                        <div class="kpi-card-small"><div class="title">Qualificadas</div><div class="value" id="kpi-qualificadas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Desqualificadas</div><div class="value" id="kpi-desqualificadas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Reagendadas</div><div class="value" id="kpi-reagendadas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">No Show</div><div class="value" id="kpi-no-show">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Reuniões Resgatadas</div><div class="value" id="kpi-reunioes-resgatadas">0</div></div>
+                        <div class="kpi-card-small"><div class="title">Perdidas</div><div class="value" id="kpi-perdidas">0</div></div>
+                    </div>
                     
-                    <!-- Other Widgets -->
                     <div class="widget channel-widget">
                         <h3>Performance por Canal</h3>
                         <div class="channel-metrics-container" id="channel-metrics-container"></div>
                     </div>
-                    <div class="widget pipeline-widget">
-                        <h3>Etapas de Reunião</h3>
-                        <div id="stage-pipeline-container"></div>
-                    </div>
-                    <div class="widget pipeline-widget">
-                        <h3>Evolução do Funil</h3>
-                        <div id="evolution-pipeline-container"></div>
+                    <div class="pipeline-widget-grid">
+                        <div class="widget pipeline-widget">
+                            <h3>Etapas de Reunião</h3>
+                            <div id="stage-pipeline-container"></div>
+                        </div>
+                        <div class="widget pipeline-widget">
+                            <h3>Evolução do Funil</h3>
+                            <div id="evolution-pipeline-container"></div>
+                        </div>
                     </div>
                     <div class="widget ranking-widget">
                         <h3>Ranking de Vendas</h3>
@@ -492,8 +595,7 @@
                     </div>
                 </div>
                 <div id="propostas-container">
-                    <!-- Propostas em aberto serão inseridas aqui -->
-                </div>
+                    </div>
             </section>
 
             <section id="historico" class="content-section">
@@ -506,7 +608,6 @@
         </main>
     </div>
 
-    <!-- Modal de Edição -->
     <div id="edit-modal" class="modal-overlay">
         <div class="modal-content">
             <button id="modal-close-btn" class="modal-close-btn">&times;</button>
@@ -533,7 +634,6 @@
                     <div class="form-group"><label for="edit-reuniao-resgatada">Reunião Resgatada?</label><select id="edit-reuniao-resgatada"><option>Não</option><option>Sim</option></select></div>
                     <div class="form-group"><label for="edit-funnel-evolution">Evolução no Funil</label><select id="edit-funnel-evolution"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
                     <div class="form-group"><label for="edit-proposal-value">Valor da Proposta (R$)</label><input type="number" id="edit-proposal-value" placeholder="7000"></div>
-                    <div class="form-group"><label for="edit-sale-value">Valor da Venda (R$)</label><input type="number" id="edit-sale-value" placeholder="5000"></div>
                     <div class="form-group full-width"><label for="edit-notes">Observações</label><textarea id="edit-notes" placeholder="Adicione notas sobre a negociação..."></textarea></div>
                 </div>
                 <div class="form-group full-width" style="margin-top: 20px;">
@@ -543,7 +643,6 @@
         </div>
     </div>
 
-    <!-- Modal de Notificação -->
     <div id="notification-modal" class="modal-overlay">
         <div class="modal-content">
             <p id="notification-message"></p>
@@ -570,6 +669,29 @@
             const signupErrorMessage = document.getElementById('signup-error-message');
             const showSignupBtn = document.getElementById('show-signup');
             const showLoginBtn = document.getElementById('show-login');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+
+            // --- Lógica do Tema Escuro ---
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            };
+
+            themeToggleBtn.addEventListener('click', () => {
+                const isDarkMode = document.body.classList.toggle('dark-mode');
+                const newTheme = isDarkMode ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+            
+            // Aplicar tema salvo no carregamento da página
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
 
             // --- Função Principal de Inicialização da Aplicação ---
             const startApp = async (user) => {
@@ -697,7 +819,6 @@
                             <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
                             <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option></select></div>
                             <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
-                            <div class="form-group"><label for="sale-value-${blockId}">Valor da Venda (R$)</label><input type="number" id="sale-value-${blockId}" placeholder="5000"></div>
                             <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
                         </div>
                     `;
@@ -938,7 +1059,6 @@
                             type: document.getElementById(`activity-type-${blockId}`).value, 
                             status: document.getElementById(`activity-status-${blockId}`).value, 
                             evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
-                            sale_value: parseFloat(document.getElementById(`sale-value-${blockId}`).value) || null, 
                             proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
                             notes: document.getElementById(`notes-${blockId}`).value,
                             qualification: document.getElementById(`qualification-${blockId}`).value,
@@ -982,7 +1102,6 @@
                     document.getElementById('edit-reuniao-resgatada').value = activity.reuniao_resgatada || 'Não';
                     document.getElementById('edit-funnel-evolution').value = activity.evolution;
                     document.getElementById('edit-proposal-value').value = activity.proposal_value;
-                    document.getElementById('edit-sale-value').value = activity.sale_value;
                     document.getElementById('edit-notes').value = activity.notes;
                     editModal.classList.add('visible');
                 };
@@ -1045,7 +1164,6 @@
                         reuniao_resgatada: document.getElementById('edit-reuniao-resgatada').value,
                         evolution: document.getElementById('edit-funnel-evolution').value,
                         proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
-                        sale_value: parseFloat(document.getElementById('edit-sale-value').value) || null,
                         notes: document.getElementById('edit-notes').value,
                     };
 
