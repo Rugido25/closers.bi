@@ -832,22 +832,24 @@
                     const leadContainer = document.getElementById(`lead-container-${blockId}`);
                     const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
 
-                    // For R2 and R3, always switch to a dropdown of eligible leads
                     if (meetingType === 'R2' || meetingType === 'R3') {
+                        const noShowLeads = new Set(
+                            activities.filter(act => act.status === 'No Show').map(act => act.lead)
+                        );
+
                         let eligibleLeads = [];
                         if (meetingType === 'R2') {
                             const leadsInR1 = new Set(
-                                activities.filter(act => act.type === 'R1' && !act.deal_outcome).map(act => act.lead)
+                                activities.filter(act => act.type === 'R1' && !act.deal_outcome && !noShowLeads.has(act.lead)).map(act => act.lead)
                             );
                             eligibleLeads = [...leadsInR1];
                         } else { // R3
                             const leadsInR2 = new Set(
-                                activities.filter(act => act.type === 'R2' && !act.deal_outcome).map(act => act.lead)
+                                activities.filter(act => act.type === 'R2' && !act.deal_outcome && !noShowLeads.has(act.lead)).map(act => act.lead)
                             );
                             eligibleLeads = [...leadsInR2];
                         }
 
-                        // Build the select dropdown
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
                         selectHTML += `<select id="lead-name-${blockId}" required>`;
                         selectHTML += '<option value="">Selecione um Lead</option>';
@@ -858,13 +860,10 @@
                         
                         leadContainer.innerHTML = selectHTML;
                     } 
-                    // For R1 or N/A, ensure it's a text input
                     else {
-                        // Only switch back to input if it's currently a select
                         if (currentLeadElement.tagName.toLowerCase() === 'select') {
                             leadContainer.innerHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required>`;
                         }
-                        // If it's already an input (for R1), do nothing, preserving the typed value.
                     }
                 };
 
@@ -1433,3 +1432,5 @@
     </script>
 </body>
 </html>
+"
+Adicione o campo de comissão no lançamento diario e no historico, a comissão é 10% do valor da propos
