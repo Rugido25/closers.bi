@@ -838,17 +838,14 @@
                         );
 
                         let eligibleLeads = [];
-                        if (meetingType === 'R2') {
-                            const leadsInR1 = new Set(
-                                activities.filter(act => act.type === 'R1' && !act.deal_outcome && !noShowLeads.has(act.lead)).map(act => act.lead)
-                            );
-                            eligibleLeads = [...leadsInR1];
-                        } else { // R3
-                            const leadsInR2 = new Set(
-                                activities.filter(act => act.type === 'R2' && !act.deal_outcome && !noShowLeads.has(act.lead)).map(act => act.lead)
-                            );
-                            eligibleLeads = [...leadsInR2];
-                        }
+                        const previousStage = meetingType === 'R2' ? 'R1' : 'R2';
+                        
+                        const leadsInPreviousStage = new Set(
+                            activities
+                                .filter(act => act.type === previousStage && !act.deal_outcome && !noShowLeads.has(act.lead))
+                                .map(act => act.lead)
+                        );
+                        eligibleLeads = [...leadsInPreviousStage];
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
                         selectHTML += `<select id="lead-name-${blockId}" required>`;
@@ -859,8 +856,27 @@
                         selectHTML += '</select>';
                         
                         leadContainer.innerHTML = selectHTML;
-                    } 
-                    else {
+
+                        // Add the event listener to the new select element
+                        const newLeadSelect = document.getElementById(`lead-name-${blockId}`);
+                        newLeadSelect.addEventListener('change', () => {
+                            const selectedLeadName = newLeadSelect.value;
+                            if (!selectedLeadName) return;
+
+                            const previousActivity = activities
+                                .filter(act => act.lead === selectedLeadName && act.type === previousStage)
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0]; // Get the latest one
+
+                            if (previousActivity) {
+                                document.getElementById(`bdr-${blockId}`).value = previousActivity.bdr || '';
+                                document.getElementById(`revenue-${blockId}`).value = previousActivity.company_revenue || 'Desconhecido';
+                                document.getElementById(`channel-${blockId}`).value = previousActivity.channel || 'Inbound';
+                                document.getElementById(`qualification-${blockId}`).value = previousActivity.qualification || 'Qualificado';
+                                document.getElementById(`reuniao-resgatada-${blockId}`).value = previousActivity.reuniao_resgatada || 'Não';
+                            }
+                        });
+
+                    } else {
                         if (currentLeadElement.tagName.toLowerCase() === 'select') {
                             leadContainer.innerHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required>`;
                         }
@@ -1432,5 +1448,3 @@
     </script>
 </body>
 </html>
-"
-Adicione o campo de comissão no lançamento diario e no historico, a comissão é 10% do valor da propos
