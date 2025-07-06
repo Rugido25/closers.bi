@@ -1074,9 +1074,21 @@
                         
                         const isOwner = act.closer_id === userId;
                         const leadHasNoShow = activities.some(a => a.lead === act.lead && a.status === 'No Show');
-                        const endButtonHTML = isOwner && !act.deal_outcome && !leadHasNoShow ? `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>` : '';
+                        const dealIsClosed = activities.some(a => a.lead === act.lead && a.deal_outcome);
+                        let actionsHTML = '';
 
-                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td><td>${endButtonHTML}</td>`;
+                        if (isOwner && !dealIsClosed && !leadHasNoShow) {
+                            const hasR2 = activities.some(a => a.lead === act.lead && a.type === 'R2');
+                            const hasR3 = activities.some(a => a.lead === act.lead && a.type === 'R3');
+
+                            if (act.type === 'R1' && !hasR2 && !hasR3) {
+                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar R1</button>`;
+                            } else if (act.type === 'R2' && !hasR3) {
+                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                            }
+                        }
+
+                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td><td>${actionsHTML}</td>`;
                         finalTableBody.appendChild(row);
                     });
                 };
