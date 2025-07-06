@@ -830,26 +830,41 @@
 
                 const updateLeadInput = (blockId, meetingType) => {
                     const leadContainer = document.getElementById(`lead-container-${blockId}`);
-                    const currentLeadInput = document.getElementById(`lead-name-${blockId}`);
-                    
-                    let eligibleLeads = [];
-                    if (meetingType === 'R2') {
-                        const leadsInR1 = new Set(activities.filter(act => act.type === 'R1' && !act.deal_outcome).map(act => act.lead));
-                        eligibleLeads = [...leadsInR1];
-                    } else if (meetingType === 'R3') {
-                        const leadsInR2 = new Set(activities.filter(act => act.type === 'R2' && !act.deal_outcome).map(act => act.lead));
-                        eligibleLeads = [...leadsInR2];
-                    }
+                    const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
 
-                    if (eligibleLeads.length > 0) {
-                        currentLeadInput.outerHTML = `
-                            <select id="lead-name-${blockId}" required>
-                                <option value="">Selecione um Lead</option>
-                                ${eligibleLeads.map(lead => `<option value="${lead}">${lead}</option>`).join('')}
-                            </select>
-                        `;
-                    } else {
-                         currentLeadInput.outerHTML = `<input type="text" id="lead-name-${blockId}" required>`;
+                    // For R2 and R3, always switch to a dropdown of eligible leads
+                    if (meetingType === 'R2' || meetingType === 'R3') {
+                        let eligibleLeads = [];
+                        if (meetingType === 'R2') {
+                            const leadsInR1 = new Set(
+                                activities.filter(act => act.type === 'R1' && !act.deal_outcome).map(act => act.lead)
+                            );
+                            eligibleLeads = [...leadsInR1];
+                        } else { // R3
+                            const leadsInR2 = new Set(
+                                activities.filter(act => act.type === 'R2' && !act.deal_outcome).map(act => act.lead)
+                            );
+                            eligibleLeads = [...leadsInR2];
+                        }
+
+                        // Build the select dropdown
+                        let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
+                        selectHTML += `<select id="lead-name-${blockId}" required>`;
+                        selectHTML += '<option value="">Selecione um Lead</option>';
+                        eligibleLeads.forEach(lead => {
+                            selectHTML += `<option value="${lead}">${lead}</option>`;
+                        });
+                        selectHTML += '</select>';
+                        
+                        leadContainer.innerHTML = selectHTML;
+                    } 
+                    // For R1 or N/A, ensure it's a text input
+                    else {
+                        // Only switch back to input if it's currently a select
+                        if (currentLeadElement.tagName.toLowerCase() === 'select') {
+                            leadContainer.innerHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required>`;
+                        }
+                        // If it's already an input (for R1), do nothing, preserving the typed value.
                     }
                 };
 
@@ -1037,7 +1052,8 @@
                         row.dataset.id = act.id;
                         
                         const isOwner = act.closer_id === userId;
-                        const endButtonHTML = isOwner && !act.deal_outcome ? `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>` : '';
+                        const leadHasNoShow = activities.some(a => a.lead === act.lead && a.status === 'No Show');
+                        const endButtonHTML = isOwner && !act.deal_outcome && !leadHasNoShow ? `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>` : '';
 
                         row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td><td>${endButtonHTML}</td>`;
                         finalTableBody.appendChild(row);
