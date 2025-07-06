@@ -837,15 +837,22 @@
                             activities.filter(act => act.status === 'No Show').map(act => act.lead)
                         );
 
-                        let eligibleLeads = [];
                         const previousStage = meetingType === 'R2' ? 'R1' : 'R2';
-                        
+                        const currentStage = meetingType;
+
                         const leadsInPreviousStage = new Set(
                             activities
                                 .filter(act => act.type === previousStage && !act.deal_outcome && !noShowLeads.has(act.lead))
                                 .map(act => act.lead)
                         );
-                        eligibleLeads = [...leadsInPreviousStage];
+                        
+                        const leadsInCurrentStage = new Set(
+                            activities
+                                .filter(act => act.type === currentStage)
+                                .map(act => act.lead)
+                        );
+
+                        const eligibleLeads = [...leadsInPreviousStage].filter(lead => !leadsInCurrentStage.has(lead));
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
                         selectHTML += `<select id="lead-name-${blockId}" required>`;
@@ -857,7 +864,6 @@
                         
                         leadContainer.innerHTML = selectHTML;
 
-                        // Add the event listener to the new select element
                         const newLeadSelect = document.getElementById(`lead-name-${blockId}`);
                         newLeadSelect.addEventListener('change', () => {
                             const selectedLeadName = newLeadSelect.value;
@@ -865,7 +871,7 @@
 
                             const previousActivity = activities
                                 .filter(act => act.lead === selectedLeadName && act.type === previousStage)
-                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0]; // Get the latest one
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
                             if (previousActivity) {
                                 document.getElementById(`bdr-${blockId}`).value = previousActivity.bdr || '';
