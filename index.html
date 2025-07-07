@@ -1062,7 +1062,7 @@
 
                 const updateRanking = (data) => {
                     const rankingContainer = document.getElementById('ranking-container');
-                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganhada' && act.sale_value > 0).reduce((acc, act) => {
+                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganha' && act.sale_value > 0).reduce((acc, act) => {
                         if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
                         acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
                     }, {});
@@ -1441,7 +1441,7 @@
                     const originalActivity = activities.find(act => act.id == id);
 
                     if (button.classList.contains('btn-ganha')) {
-                        updatedData = { deal_outcome: 'Ganhada', sale_value: parseFloat(button.dataset.value) };
+                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value) };
                     } else if (button.classList.contains('btn-perdida')) {
                         updatedData = { deal_outcome: 'Perdida' };
                     } else {
