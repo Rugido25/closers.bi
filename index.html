@@ -642,6 +642,7 @@
             <form id="edit-activity-form">
                 <input type="hidden" id="edit-activity-id">
                 <div class="form-grid">
+                    <div class="form-group"><label for="edit-date">Data da Atividade</label><input type="date" id="edit-date" required></div>
                     <div class="form-group"><label for="edit-lead-name">Lead/Empresa</label><input type="text" id="edit-lead-name" required></div>
                     <div class="form-group"><label for="edit-bdr">BDR</label><input type="text" id="edit-bdr"></div>
                     <div class="form-group"><label for="edit-revenue">Faturamento da Empresa</label>
@@ -1208,6 +1209,7 @@
                     const activity = activities.find(act => act.id == activityId);
                     if (!activity) return;
                     document.getElementById('edit-activity-id').value = activity.id;
+                    document.getElementById('edit-date').value = activity.date;
                     document.getElementById('edit-lead-name').value = activity.lead;
                     document.getElementById('edit-bdr').value = activity.bdr;
                     document.getElementById('edit-revenue').value = activity.company_revenue;
@@ -1270,6 +1272,7 @@
                     e.preventDefault();
                     const id = document.getElementById('edit-activity-id').value;
                     const updatedData = {
+                        date: document.getElementById('edit-date').value,
                         lead: document.getElementById('edit-lead-name').value,
                         bdr: document.getElementById('edit-bdr').value,
                         company_revenue: document.getElementById('edit-revenue').value,
