@@ -349,6 +349,20 @@
         tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
         tbody tr:hover { background-color: var(--header-bg); }
         .table-filters input, .table-filters select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
+        .notes-cell { max-width: 250px; }
+        .notes-text-full { display: none; white-space: normal; }
+        .toggle-notes-btn {
+            color: var(--highlight-pink);
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 0.8rem;
+            display: block;
+            margin-top: 4px;
+        }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
         .modal-content { background: var(--main-bg); padding: 30px; border-radius: 8px; width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.95); transition: transform 0.3s ease; }
@@ -866,26 +880,23 @@
                     const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
 
                     if (meetingType === 'R2' || meetingType === 'R3') {
-                        const noShowLeads = new Set(
-                            activities.filter(act => act.status === 'No Show').map(act => act.lead)
-                        );
-
                         const previousStage = meetingType === 'R2' ? 'R1' : 'R2';
                         const currentStage = meetingType;
-
-                        const leadsInPreviousStage = new Set(
+                        
+                        const myLeadsInPreviousStage = new Set(
                             activities
-                                .filter(act => act.type === previousStage && !act.deal_outcome && !noShowLeads.has(act.lead))
+                                .filter(act => act.closer_id === userId && act.type === previousStage)
                                 .map(act => act.lead)
                         );
                         
-                        const leadsInCurrentStage = new Set(
-                            activities
-                                .filter(act => act.type === currentStage)
-                                .map(act => act.lead)
-                        );
+                        const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
+                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage);
+                            const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
+                            const hadNoShow = activities.some(a => a.lead === lead && a.status === 'No Show');
+                            const hasProposal = activities.some(a => a.lead === lead && a.proposal_sent === 'Sim');
 
-                        const eligibleLeads = [...leadsInPreviousStage].filter(lead => !leadsInCurrentStage.has(lead));
+                            return !hasAdvanced && !isClosed && (!hadNoShow || hasProposal);
+                        });
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
                         selectHTML += `<select id="lead-name-${blockId}" required>`;
@@ -1106,11 +1117,11 @@
                         `;
                         const getUniqueOptions = (key) => ['Todos', ...new Set(activities.map(act => act[key]).filter(Boolean))];
                         
-                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option>${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option>${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option value="${opt}">${opt}</option>`).join('');
                         document.querySelector('.table-filters [data-key="qualification"]').innerHTML = getUniqueOptions('qualification').map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option>${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option value="${opt}">${opt}</option>`).join('');
 
                         document.querySelectorAll('#history-table-container .table-filters').forEach(row => {
                             row.addEventListener('input', renderTable);
@@ -1141,7 +1152,22 @@
                             }
                         }
 
-                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td>${act.notes}</td><td>${actionsHTML}</td>`;
+                        const notes = act.notes || '';
+                        const maxLength = 50;
+                        let notesHTML = '';
+
+                        if (notes.length > maxLength) {
+                            notesHTML = `
+                                <span class="notes-text-truncated">${notes.substring(0, maxLength)}...</span>
+                                <span class="notes-text-full" style="display: none;">${notes}</span>
+                                <button class="toggle-notes-btn">Ver mais</button>
+                            `;
+                        } else {
+                            notesHTML = notes;
+                        }
+
+                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
+                        
                         finalTableBody.appendChild(row);
                     });
                 };
@@ -1231,6 +1257,20 @@
 
                 historyContainer.addEventListener('click', async (e) => {
                     const target = e.target;
+                    
+                    if (target.classList.contains('toggle-notes-btn')) {
+                        e.preventDefault();
+                        const cell = target.closest('td');
+                        const truncated = cell.querySelector('.notes-text-truncated');
+                        const full = cell.querySelector('.notes-text-full');
+                        
+                        const isExpanded = full.style.display === 'block';
+                        
+                        truncated.style.display = isExpanded ? 'block' : 'none';
+                        full.style.display = isExpanded ? 'none' : 'block';
+                        target.textContent = isExpanded ? 'Ver mais' : 'Ver menos';
+                        return;
+                    }
                     
                     const row = target.closest('tr');
                     if (row && !target.classList.contains('end-deal-btn')) {
