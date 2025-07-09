@@ -230,6 +230,28 @@
         #custom-date-filters, #history-custom-date-filters { display: none; gap: 15px; }
         #custom-date-filters.visible, #history-custom-date-filters.visible { display: flex; }
         
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+        }
+
         /* --- Dashboard --- */
         .dashboard-grid {
             display: grid;
@@ -642,6 +664,14 @@
                             <input type="date" id="history-end-date-filter">
                         </div>
                     </div>
+                    <div class="filter-group">
+                        <label>Tipo de Reunião</label>
+                        <div class="checkbox-group" id="history-type-filter">
+                            <label><input type="checkbox" value="R1" checked> R1</label>
+                            <label><input type="checkbox" value="R2" checked> R2</label>
+                            <label><input type="checkbox" value="R3" checked> R3</label>
+                        </div>
+                    </div>
                     <button id="clear-history-filters-btn" class="action-button" style="align-self: flex-end;">Limpar Filtros</button>
                 </div>
                 <div id="history-table-container"></div>
@@ -778,6 +808,7 @@
                 const historyCustomDateFilters = document.getElementById('history-custom-date-filters');
                 const historyStartDateFilter = document.getElementById('history-start-date-filter');
                 const historyEndDateFilter = document.getElementById('history-end-date-filter');
+                const historyTypeFilter = document.getElementById('history-type-filter');
 
                 userDisplayName.textContent = userName;
 
@@ -890,12 +921,10 @@
                         );
                         
                         const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
-                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage);
+                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
                             const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
-                            const hadNoShow = activities.some(a => a.lead === lead && a.status === 'No Show');
-                            const hasProposal = activities.some(a => a.lead === lead && a.proposal_sent === 'Sim');
-
-                            return !hasAdvanced && !isClosed && (!hadNoShow || hasProposal);
+                            
+                            return !hasAdvanced && !isClosed;
                         });
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
@@ -979,12 +1008,17 @@
                         const startDate = historyStartDateFilter.value ? new Date(historyStartDateFilter.value + 'T00:00:00') : null;
                         const endDate = historyEndDateFilter.value ? new Date(historyEndDateFilter.value + 'T23:59:59') : null;
                         
+                        const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
+
                         const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome'];
                         
                         filtered = activities.filter(act => {
                             const activityDate = new Date(act.date + 'T00:00:00');
                             const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
                             if (!dateMatch) return false;
+
+                            const typeMatch = selectedTypes.length === 0 ? true : selectedTypes.includes(act.type);
+                            if (!typeMatch) return false;
 
                             return Object.entries(filters).every(([key, value]) => {
                                 if (!value || value === 'Todos') return true;
@@ -1042,7 +1076,14 @@
                         const channelData = data.filter(act => act.channel === channel);
                         const channelSales = channelData.filter(act => act.deal_outcome === 'Ganha');
                         const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                        html += `<div class="channel-metric-item"><div class="channel-name">${channel}</div><div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div><div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div><div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div></div>`;
+                        const channelNoShows = channelData.filter(act => act.status === 'No Show').length;
+                        html += `<div class="channel-metric-item">
+                                    <div class="channel-name">${channel}</div>
+                                    <div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div>
+                                    <div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div>
+                                    <div class="metric"><span class="metric-label">No Show</span><span class="metric-value">${channelNoShows}</span></div>
+                                    <div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div>
+                                 </div>`;
                     });
                     container.innerHTML = html;
                 };
@@ -1185,6 +1226,7 @@
                     historyStartDateFilter.value = '';
                     historyEndDateFilter.value = '';
                     historyCustomDateFilters.classList.remove('visible');
+                    historyTypeFilter.querySelectorAll('input').forEach(cb => cb.checked = true);
                     renderTable();
                 });
 
@@ -1519,6 +1561,7 @@
                 historyDatePresetFilter.addEventListener('change', handleHistoryDatePresetChange);
                 historyStartDateFilter.addEventListener('change', renderTable);
                 historyEndDateFilter.addEventListener('change', renderTable);
+                historyTypeFilter.addEventListener('change', renderTable);
 
 
                 navLinks.forEach(link => {
