@@ -664,7 +664,7 @@
                             <input type="date" id="history-end-date-filter">
                         </div>
                     </div>
-                    <div class="filter-group">
+                     <div class="filter-group">
                         <label>Tipo de Reunião</label>
                         <div class="checkbox-group" id="history-type-filter">
                             <label><input type="checkbox" value="R1" checked> R1</label>
@@ -923,8 +923,9 @@
                         const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
                             const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
                             const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
+                            const hadNoShow = activities.some(a => a.lead === lead && a.status === 'No Show');
                             
-                            return !hasAdvanced && !isClosed;
+                            return !hasAdvanced && !isClosed && !hadNoShow;
                         });
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
@@ -1308,8 +1309,8 @@
                         
                         const isExpanded = full.style.display === 'block';
                         
-                        truncated.style.display = isExpanded ? 'block' : 'none';
-                        full.style.display = isExpanded ? 'none' : 'block';
+                        truncated.style.display = isExpanded ? 'none' : 'block';
+                        full.style.display = isExpanded ? 'block' : 'none';
                         target.textContent = isExpanded ? 'Ver mais' : 'Ver menos';
                         return;
                     }
