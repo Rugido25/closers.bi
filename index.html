@@ -369,10 +369,10 @@
         th { background-color: var(--main-bg); font-weight: 500; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
         td { color: var(--text-dark); }
         tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
-        tbody tr:hover { background-color: var(--header-bg); }
+        tbody tr:hover { background-color: var(--form-bg); }
         .table-filters input, .table-filters select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
-        .notes-cell { max-width: 250px; }
-        .notes-text-full { display: none; white-space: normal; }
+        .notes-cell { max-width: 250px; white-space: normal; word-break: break-word; }
+        .notes-text-full { display: none; }
         .toggle-notes-btn {
             color: var(--highlight-pink);
             cursor: pointer;
@@ -396,12 +396,12 @@
         #notification-close-btn { background: var(--header-bg); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
         #notification-modal .modal-content.success { border-left: 5px solid var(--success-color); }
         #notification-modal .modal-content.error { border-left: 5px solid var(--error-color); }
-        .proposal-card { background: var(--card-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; }
+        .proposal-card { background: var(--card-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 10px; }
         .proposal-info { flex-grow: 1; }
         .proposal-info .lead-name { font-weight: 700; font-size: 1.1rem; color: var(--text-dark); }
         .proposal-info .lead-name.editable { cursor: pointer; color: var(--highlight-pink); text-decoration: underline; }
         .proposal-info .details { font-size: 0.9rem; color: var(--text-light); }
-        .proposal-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .proposal-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .proposal-actions button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s ease; }
         .proposal-actions button:hover { opacity: 0.8; }
         .btn-ganha { background-color: var(--success-color); color: white; }
@@ -411,6 +411,7 @@
 </head>
 <body>
 
+    <!-- Seção de Login -->
     <div id="login-section" class="auth-section">
         <div class="auth-container">
             <h1>Grupo <span>Rugido</span></h1>
@@ -431,6 +432,7 @@
         </div>
     </div>
 
+    <!-- Seção de Cadastro -->
     <div id="signup-section" class="auth-section" style="display: none;">
         <div class="auth-container">
             <h1>Criar Conta</h1>
@@ -455,6 +457,7 @@
         </div>
     </div>
 
+    <!-- Seção Principal da Aplicação -->
     <div id="app-section" class="app-container" style="display: none;">
         <header>
             <div class="logo">Grupo <span>Rugido</span></div>
@@ -670,6 +673,8 @@
                             <label><input type="checkbox" value="R1" checked> R1</label>
                             <label><input type="checkbox" value="R2" checked> R2</label>
                             <label><input type="checkbox" value="R3" checked> R3</label>
+                            <label><input type="checkbox" value="R4" checked> R4</label>
+                            <label><input type="checkbox" value="R5" checked> R5</label>
                         </div>
                     </div>
                     <button id="clear-history-filters-btn" class="action-button" style="align-self: flex-end;">Limpar Filtros</button>
@@ -679,6 +684,7 @@
         </main>
     </div>
 
+    <!-- Modal de Edição -->
     <div id="edit-modal" class="modal-overlay">
         <div class="modal-content">
             <button id="modal-close-btn" class="modal-close-btn">&times;</button>
@@ -699,12 +705,35 @@
                         </select>
                     </div>
                     <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
-                    <div class="form-group"><label for="edit-qualification">Qualificação</label><select id="edit-qualification"><option>Qualificado</option><option>Não Qualificado</option></select></div>
-                    <div class="form-group"><label for="edit-activity-type">Tipo de Reunião</label><select id="edit-activity-type"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option></select></div>
+                    <div class="form-group"><label for="edit-qualification">Qualificação</label>
+                        <select id="edit-qualification">
+                            <option>Não Identificado</option>
+                            <option>Qualificado</option>
+                            <option>Não Qualificado</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label for="edit-activity-type">Tipo de Reunião</label>
+                        <select id="edit-activity-type">
+                            <option value="">N/A</option>
+                            <option>R1</option>
+                            <option>R2</option>
+                            <option>R3</option>
+                            <option>R4</option>
+                            <option>R5</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label for="edit-activity-status">Status da Atividade</label><select id="edit-activity-status"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
                     <div class="form-group"><label for="edit-proposal-sent">Proposta Enviada?</label><select id="edit-proposal-sent"><option>Não</option><option>Sim</option></select></div>
                     <div class="form-group"><label for="edit-reuniao-resgatada">Reunião Resgatada?</label><select id="edit-reuniao-resgatada"><option>Não</option><option>Sim</option></select></div>
-                    <div class="form-group"><label for="edit-funnel-evolution">Evolução no Funil</label><select id="edit-funnel-evolution"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option><option>De R3 para R4</option></select></div>
+                    <div class="form-group"><label for="edit-funnel-evolution">Evolução no Funil</label>
+                        <select id="edit-funnel-evolution">
+                            <option value="">Nenhuma</option>
+                            <option>De R1 para R2</option>
+                            <option>De R2 para R3</option>
+                            <option>De R3 para R4</option>
+                            <option>De R4 para R5</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label for="edit-proposal-value">Valor da Proposta (R$)</label><input type="number" id="edit-proposal-value" placeholder="7000"></div>
                     <div class="form-group full-width"><label for="edit-notes">Observações</label><textarea id="edit-notes" placeholder="Adicione notas sobre a negociação..."></textarea></div>
                 </div>
@@ -715,6 +744,7 @@
         </div>
     </div>
 
+    <!-- Modal de Notificação -->
     <div id="notification-modal" class="modal-overlay">
         <div class="modal-content">
             <p id="notification-message"></p>
@@ -725,6 +755,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // --- Configuração do Supabase ---
             const SUPABASE_URL = 'https://tzwzgbulgfiibgodmige.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6d3pnYnVsZ2ZpaWJnb2RtaWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MzUyNjYsImV4cCI6MjA2NzIxMTI2Nn0.5BmYUgPf1IpOGjgaRtKfgssZr_iIsSflNd3hxEZnwb0';
             
@@ -777,6 +808,7 @@
 
                 let activities = [];
 
+                // --- Seletores de Elementos da Aplicação ---
                 const navLinks = document.querySelectorAll('.nav-link');
                 const contentSections = document.querySelectorAll('.content-section');
                 const historyContainer = document.getElementById('history-table-container');
@@ -817,6 +849,7 @@
                     window.location.reload();
                 });
 
+                // --- Funções de UI (Notificações, Modais, Formatação) ---
                 const showNotification = (message, type = 'info') => {
                     notificationMessage.textContent = message;
                     const modalContent = notificationModal.querySelector('.modal-content');
@@ -838,8 +871,19 @@
                     }
                 });
 
-                const toISODateString = (date) => date.toISOString().split('T')[0];
+                const toISODateString = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+                
+                const formatCurrency = (value) => {
+                    if (typeof value !== 'number') return 'R$ 0,00';
+                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                };
 
+                // --- Lógica do Formulário de Lançamento Diário ---
                 const handleFormDatePresetChange = () => {
                     const preset = datePresetForm.value;
                     const today = new Date();
@@ -864,11 +908,6 @@
 
                 datePresetForm.addEventListener('change', handleFormDatePresetChange);
                 handleFormDatePresetChange();
-
-                const formatCurrency = (value) => {
-                    if (typeof value !== 'number') return 'R$ 0,00';
-                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                };
                 
                 const createLancamentoBlock = () => {
                     const blockId = `block-${Date.now()}`;
@@ -890,12 +929,35 @@
                                 </select>
                             </div>
                             <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
-                            <div class="form-group"><label for="qualification-${blockId}">Qualificação</label><select id="qualification-${blockId}"><option>Qualificado</option><option>Não Qualificado</option></select></div>
+                            <div class="form-group"><label for="qualification-${blockId}">Qualificação</label>
+                                <select id="qualification-${blockId}">
+                                    <option>Não Identificado</option>
+                                    <option>Qualificado</option>
+                                    <option>Não Qualificado</option>
+                                </select>
+                            </div>
                             <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label><select id="activity-type-${blockId}"><option value="">N/A</option><option>R1</option><option>R2</option><option>R3</option></select></div>
+                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label>
+                                <select id="activity-type-${blockId}">
+                                    <option value="">N/A</option>
+                                    <option>R1</option>
+                                    <option>R2</option>
+                                    <option>R3</option>
+                                    <option>R4</option>
+                                    <option>R5</option>
+                                </select>
+                            </div>
                             <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
                             <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label><select id="funnel-evolution-${blockId}"><option value="">Nenhuma</option><option>De R1 para R2</option><option>De R2 para R3</option></select></div>
+                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label>
+                                <select id="funnel-evolution-${blockId}">
+                                    <option value="">Nenhuma</option>
+                                    <option>De R1 para R2</option>
+                                    <option>De R2 para R3</option>
+                                    <option>De R3 para R4</option>
+                                    <option>De R4 para R5</option>
+                                </select>
+                            </div>
                             <div class="form-group"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
                             <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
                         </div>
@@ -910,8 +972,9 @@
                     const leadContainer = document.getElementById(`lead-container-${blockId}`);
                     const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
 
-                    if (meetingType === 'R2' || meetingType === 'R3') {
-                        const previousStage = meetingType === 'R2' ? 'R1' : 'R2';
+                    if (meetingType.startsWith('R') && meetingType !== 'R1') {
+                        const stageNumber = parseInt(meetingType.substring(1));
+                        const previousStage = 'R' + (stageNumber - 1);
                         const currentStage = meetingType;
                         
                         const myLeadsInPreviousStage = new Set(
@@ -972,6 +1035,7 @@
                     }
                 });
                 
+                // --- Funções de Dados (Fetch, Filter, Update) ---
                 async function fetchActivities() {
                     const { data, error } = await supabaseClient.from('activities').select('*');
                     if (error) {
@@ -1042,6 +1106,7 @@
                     renderPropostas();
                 };
 
+                // --- Funções de Renderização do Dashboard ---
                 const updateDashboard = (data) => {
                     const vendas = data.filter(act => act.deal_outcome === 'Ganha');
                     const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
@@ -1079,12 +1144,12 @@
                         const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                         const channelNoShows = channelData.filter(act => act.status === 'No Show').length;
                         html += `<div class="channel-metric-item">
-                                    <div class="channel-name">${channel}</div>
-                                    <div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div>
-                                    <div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div>
-                                    <div class="metric"><span class="metric-label">No Show</span><span class="metric-value">${channelNoShows}</span></div>
-                                    <div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div>
-                                 </div>`;
+                                     <div class="channel-name">${channel}</div>
+                                     <div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div>
+                                     <div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div>
+                                     <div class="metric"><span class="metric-label">No Show</span><span class="metric-value">${channelNoShows}</span></div>
+                                     <div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div>
+                                   </div>`;
                     });
                     container.innerHTML = html;
                 };
@@ -1092,7 +1157,7 @@
                 const updatePipelineWidgets = (data) => {
                     const stageContainer = document.getElementById('stage-pipeline-container');
                     const evolutionContainer = document.getElementById('evolution-pipeline-container');
-                    const stages = ['R1', 'R2', 'R3'];
+                    const stages = ['R1', 'R2', 'R3', 'R4', 'R5'];
                     const stageCounts = stages.map(stage => new Set(data.filter(act => act.type === stage).map(act => act.lead)).size);
                     const maxStageCount = Math.max(...stageCounts, 1);
                     let stageHTML = '';
@@ -1102,7 +1167,7 @@
                         stageHTML += `<div class="pipeline-item"><div class="pipeline-label">${stage}</div><div class="pipeline-bar-bg"><div class="pipeline-bar-fg" style="width: ${widthPercent}%;"></div></div><div class="pipeline-value">${count}</div></div>`;
                     });
                     stageContainer.innerHTML = stageHTML;
-                    const evolutions = ['De R1 para R2', 'De R2 para R3'];
+                    const evolutions = ['De R1 para R2', 'De R2 para R3', 'De R3 para R4', 'De R4 para R5'];
                     const evolutionCounts = evolutions.map(evo => data.filter(act => act.evolution === evo).length);
                     const maxEvolutionCount = Math.max(...evolutionCounts, 1);
                     let evolutionHTML = '';
@@ -1130,6 +1195,7 @@
                     rankingContainer.innerHTML = rankingHTML;
                 };
 
+                // --- Lógica da Tabela de Histórico e Edição ---
                 const renderTable = () => {
                     const tableBody = document.querySelector('#history-table-container table tbody');
                     if (!tableBody) {
@@ -1159,11 +1225,11 @@
                         `;
                         const getUniqueOptions = (key) => ['Todos', ...new Set(activities.map(act => act[key]).filter(Boolean))];
                         
-                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="qualification"]').innerHTML = getUniqueOptions('qualification').map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="qualification"]').innerHTML = getUniqueOptions('qualification').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
 
                         document.querySelectorAll('#history-table-container .table-filters').forEach(row => {
                             row.addEventListener('input', renderTable);
@@ -1186,10 +1252,16 @@
                         if (isOwner && !dealIsClosed && !leadHasNoShow) {
                             const hasR2 = activities.some(a => a.lead === act.lead && a.type === 'R2');
                             const hasR3 = activities.some(a => a.lead === act.lead && a.type === 'R3');
+                            const hasR4 = activities.some(a => a.lead === act.lead && a.type === 'R4');
+                            const hasR5 = activities.some(a => a.lead === act.lead && a.type === 'R5');
 
-                            if (act.type === 'R1' && !hasR2 && !hasR3) {
+                            if (act.type === 'R1' && ![hasR2, hasR3, hasR4, hasR5].some(Boolean)) {
                                 actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar R1</button>`;
-                            } else if (act.type === 'R2' && !hasR3) {
+                            } else if (act.type === 'R2' && ![hasR3, hasR4, hasR5].some(Boolean)) {
+                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                            } else if (act.type === 'R3' && ![hasR4, hasR5].some(Boolean)) {
+                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                            } else if (act.type === 'R4' && !hasR5) {
                                 actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
                             }
                         }
@@ -1201,14 +1273,14 @@
                         if (notes.length > maxLength) {
                             notesHTML = `
                                 <span class="notes-text-truncated">${notes.substring(0, maxLength)}...</span>
-                                <span class="notes-text-full" style="display: none;">${notes}</span>
+                                <span class="notes-text-full">${notes}</span>
                                 <button class="toggle-notes-btn">Ver mais</button>
                             `;
                         } else {
                             notesHTML = notes;
                         }
-
-                        row.innerHTML = `<td>${new Date(act.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
+                        
+                        row.innerHTML = `<td>${new Date(act.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
                         
                         finalTableBody.appendChild(row);
                     });
@@ -1307,16 +1379,16 @@
                         const truncated = cell.querySelector('.notes-text-truncated');
                         const full = cell.querySelector('.notes-text-full');
                         
-                        const isExpanded = full.style.display === 'block';
+                        const isCurrentlyExpanded = full.style.display === 'block';
                         
-                        truncated.style.display = isExpanded ? 'none' : 'block';
-                        full.style.display = isExpanded ? 'block' : 'none';
-                        target.textContent = isExpanded ? 'Ver mais' : 'Ver menos';
+                        full.style.display = isCurrentlyExpanded ? 'none' : 'block';
+                        truncated.style.display = isCurrentlyExpanded ? 'block' : 'none';
+                        target.textContent = isCurrentlyExpanded ? 'Ver mais' : 'Ver menos';
                         return;
                     }
                     
-                    const row = target.closest('tr');
-                    if (row && !target.classList.contains('end-deal-btn')) {
+                    const row = target.closest('tr[data-id]');
+                    if (row && !target.closest('button')) {
                         openEditModal(row.dataset.id);
                         return;
                     }
@@ -1382,6 +1454,91 @@
                     }
                 });
                 
+                // --- Lógica da Seção de Propostas ---
+                const renderPropostas = () => {
+                    propostasContainer.innerHTML = '';
+                    const selectedCloser = propostasCloserFilter.value;
+                    const dataToFilter = (selectedCloser === 'all') ? activities : activities.filter(act => act.closer === selectedCloser);
+                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim' && !act.deal_outcome).map(act => act.lead));
+
+                    if (leadsComProposta.size === 0) {
+                        propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto para o filtro selecionado.</p>';
+                        return;
+                    }
+
+                    leadsComProposta.forEach(lead => {
+                        const propostasDoLead = dataToFilter
+                            .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
+                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                        
+                        if (propostasDoLead.length > 0) {
+                            const ultimaProposta = propostasDoLead[0];
+                            const card = document.createElement('div');
+                            card.className = 'proposal-card';
+                            
+                            const isOwner = ultimaProposta.closer_id === userId;
+                            let actionsHTML = '';
+                            if (isOwner) {
+                                actionsHTML = `
+                                    <div class="proposal-actions">
+                                        <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
+                                        <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
+                                    </div>
+                                `;
+                            }
+                            
+                            const leadNameClass = isOwner ? 'lead-name editable' : 'lead-name';
+                            const leadNameDataId = isOwner ? `data-id="${ultimaProposta.id}"` : '';
+                            
+                            card.innerHTML = `
+                                <div class="proposal-info">
+                                    <div class="${leadNameClass}" ${leadNameDataId}>${ultimaProposta.lead}</div>
+                                    <div class="details">
+                                        Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                    </div>
+                                </div>
+                                ${actionsHTML}
+                            `;
+                            propostasContainer.appendChild(card);
+                        }
+                    });
+                };
+
+                propostasContainer.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    
+                    if (target.classList.contains('editable')) {
+                        const id = target.dataset.id;
+                        openEditModal(id);
+                        return;
+                    }
+
+                    const button = target.closest('button');
+                    if (!button) return;
+
+                    const id = button.dataset.id;
+                    if (!id) return;
+
+                    let updatedData = {};
+                    if (button.classList.contains('btn-ganha')) {
+                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value) };
+                    } else if (button.classList.contains('btn-perdida')) {
+                        updatedData = { deal_outcome: 'Perdida' };
+                    } else {
+                        return;
+                    }
+
+                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                    if (error) {
+                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
+                    } else {
+                        showNotification(`Proposta atualizada com sucesso!`, 'success');
+                        await fetchActivities();
+                    }
+                });
+                
+                // --- Lógica dos Filtros e Navegação ---
                 const handleHistoryDatePresetChange = () => {
                     const preset = historyDatePresetFilter.value;
                     const today = new Date();
@@ -1458,92 +1615,6 @@
                     closerNameForm.disabled = true;
                 };
 
-                const renderPropostas = () => {
-                    propostasContainer.innerHTML = '';
-                    const selectedCloser = propostasCloserFilter.value;
-                    const dataToFilter = (selectedCloser === 'all') ? activities : activities.filter(act => act.closer === selectedCloser);
-                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim' && !act.deal_outcome).map(act => act.lead));
-
-                    if (leadsComProposta.size === 0) {
-                        propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto para o filtro selecionado.</p>';
-                        return;
-                    }
-
-                    leadsComProposta.forEach(lead => {
-                        const propostasDoLead = dataToFilter
-                            .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
-                            .sort((a, b) => new Date(b.date) - new Date(a.date));
-                        
-                        if (propostasDoLead.length > 0) {
-                            const ultimaProposta = propostasDoLead[0];
-                            const card = document.createElement('div');
-                            card.className = 'proposal-card';
-                            
-                            const isOwner = ultimaProposta.closer_id === userId;
-                            let actionsHTML = '';
-                            if (isOwner) {
-                                actionsHTML = `
-                                    <div class="proposal-actions">
-                                        <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
-                                        <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
-                                    </div>
-                                `;
-                            }
-                            
-                            const leadNameClass = isOwner ? 'lead-name editable' : 'lead-name';
-                            const leadNameDataId = isOwner ? `data-id="${ultimaProposta.id}"` : '';
-
-                            card.innerHTML = `
-                                <div class="proposal-info">
-                                    <div class="${leadNameClass}" ${leadNameDataId}>${ultimaProposta.lead}</div>
-                                    <div class="details">
-                                        Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
-                                    </div>
-                                </div>
-                                ${actionsHTML}
-                            `;
-                            propostasContainer.appendChild(card);
-                        }
-                    });
-                };
-
-                propostasContainer.addEventListener('click', async (e) => {
-                    const target = e.target;
-                    
-                    if (target.classList.contains('editable')) {
-                        const id = target.dataset.id;
-                        openEditModal(id);
-                        return;
-                    }
-
-                    const button = target.closest('button');
-                    if (!button) return;
-
-                    const id = button.dataset.id;
-                    if (!id) return;
-
-                    let updatedData = {};
-                    let newActivity = {};
-                    const originalActivity = activities.find(act => act.id == id);
-
-                    if (button.classList.contains('btn-ganha')) {
-                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value) };
-                    } else if (button.classList.contains('btn-perdida')) {
-                        updatedData = { deal_outcome: 'Perdida' };
-                    } else {
-                        return;
-                    }
-
-                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
-
-                    if (error) {
-                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
-                    } else {
-                        showNotification(`Proposta atualizada com sucesso!`, 'success');
-                        await fetchActivities();
-                    }
-                });
-
                 userFilter.addEventListener('change', updateAllData);
                 channelFilterDash.addEventListener('change', updateAllData);
                 datePresetFilter.addEventListener('change', handleDashboardDatePresetChange);
@@ -1576,6 +1647,7 @@
                     });
                 });
                 
+                // --- Inicialização ---
                 createLancamentoBlock();
                 await fetchActivities();
                 handleDashboardDatePresetChange();
@@ -1621,7 +1693,7 @@
                     password: password,
                     options: {
                         data: {
-                            name: name
+                            full_name: name 
                         }
                     }
                 });
