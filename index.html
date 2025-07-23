@@ -713,8 +713,8 @@
                         </select>
                     </div>
                     <div class="form-group"><label for="edit-activity-type">Tipo de Reunião</label>
-                        <select id="edit-activity-type">
-                            <option value="">N/A</option>
+                        <select id="edit-activity-type" required>
+                            <option value="">Selecione o Tipo</option>
                             <option>R1</option>
                             <option>R2</option>
                             <option>R3</option>
@@ -938,8 +938,8 @@
                             </div>
                             <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
                             <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label>
-                                <select id="activity-type-${blockId}">
-                                    <option value="">N/A</option>
+                                <select id="activity-type-${blockId}" required>
+                                    <option value="">Selecione o Tipo</option>
                                     <option>R1</option>
                                     <option>R2</option>
                                     <option>R3</option>
@@ -1082,7 +1082,7 @@
                             const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
                             if (!dateMatch) return false;
 
-                            const typeMatch = selectedTypes.length === 0 ? true : selectedTypes.includes(act.type);
+                            const typeMatch = (selectedTypes.length === 0 ? true : selectedTypes.includes(act.type)) || act.deal_outcome;
                             if (!typeMatch) return false;
 
                             return Object.entries(filters).every(([key, value]) => {
@@ -1181,9 +1181,11 @@
 
                 const updateRanking = (data) => {
                     const rankingContainer = document.getElementById('ranking-container');
-                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganha' && act.sale_value > 0).reduce((acc, act) => {
+                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganha').reduce((acc, act) => {
                         if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
-                        acc[act.closer].total += act.sale_value; acc[act.closer].count++; return acc;
+                        acc[act.closer].total += (act.sale_value || 0); 
+                        acc[act.closer].count++; 
+                        return acc;
                     }, {});
                     const sortedClosers = Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
                     let rankingHTML = '';
@@ -1308,29 +1310,56 @@
                     const headerData = { date: document.getElementById('date-form').value, closer: userName, closer_id: userId };
                     const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
                     const newActivitiesPayload = [];
-                    
+                    let formIsValid = true;
+
                     lancamentoBlocks.forEach(block => {
                         const blockId = block.id;
-                        const newActivity = { ...headerData, 
-                            lead: document.getElementById(`lead-name-${blockId}`).value, 
-                            bdr: document.getElementById(`bdr-${blockId}`).value,
-                            channel: document.getElementById(`channel-${blockId}`).value, 
-                            type: document.getElementById(`activity-type-${blockId}`).value, 
-                            status: document.getElementById(`activity-status-${blockId}`).value, 
-                            evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
-                            proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
-                            notes: document.getElementById(`notes-${blockId}`).value,
-                            qualification: document.getElementById(`qualification-${blockId}`).value,
-                            company_revenue: document.getElementById(`revenue-${blockId}`).value,
-                            proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
-                            reuniao_resgatada: document.getElementById(`reuniao-resgatada-${blockId}`).value,
-                        };
-                        if(newActivity.lead) newActivitiesPayload.push(newActivity);
+                        document.getElementById(`lead-name-${blockId}`).style.borderColor = '';
+                        document.getElementById(`activity-type-${blockId}`).style.borderColor = '';
                     });
 
-                    if (newActivitiesPayload.length === 0) { 
-                        showNotification('Adicione e preencha pelo menos um lançamento antes de salvar.', 'error');
-                        return; 
+                    lancamentoBlocks.forEach(block => {
+                        const blockId = block.id;
+                        const leadNameInput = document.getElementById(`lead-name-${blockId}`);
+                        const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
+
+                        if (!leadNameInput.value.trim()) {
+                            leadNameInput.style.borderColor = 'var(--error-color)';
+                            formIsValid = false;
+                        }
+                        if (!activityTypeSelect.value) {
+                            activityTypeSelect.style.borderColor = 'var(--error-color)';
+                            formIsValid = false;
+                        }
+
+                        if (formIsValid) {
+                            const newActivity = {
+                                ...headerData, 
+                                lead: leadNameInput.value.trim(), 
+                                bdr: document.getElementById(`bdr-${blockId}`).value,
+                                channel: document.getElementById(`channel-${blockId}`).value, 
+                                type: activityTypeSelect.value, 
+                                status: document.getElementById(`activity-status-${blockId}`).value, 
+                                evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
+                                proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
+                                notes: document.getElementById(`notes-${blockId}`).value,
+                                qualification: document.getElementById(`qualification-${blockId}`).value,
+                                company_revenue: document.getElementById(`revenue-${blockId}`).value,
+                                proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
+                                reuniao_resgatada: document.getElementById(`reuniao-resgatada-${blockId}`).value,
+                            };
+                            newActivitiesPayload.push(newActivity);
+                        }
+                    });
+
+                    if (!formIsValid) {
+                        showNotification('Por favor, preencha os campos obrigatórios (Lead e Tipo de Reunião) em todos os lançamentos.', 'error');
+                        return;
+                    }
+
+                    if (lancamentoBlocks.length === 0) {
+                        showNotification('Adicione pelo menos um lançamento antes de salvar.', 'error');
+                        return;
                     }
                     
                     const { error } = await supabaseClient.from('activities').insert(newActivitiesPayload);
@@ -1426,6 +1455,15 @@
                 editForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const id = document.getElementById('edit-activity-id').value;
+                    const activityTypeSelect = document.getElementById('edit-activity-type');
+                    
+                    if (!activityTypeSelect.value) {
+                        showNotification('O campo "Tipo de Reunião" é obrigatório.', 'error');
+                        activityTypeSelect.style.borderColor = 'var(--error-color)';
+                        return;
+                    }
+                    activityTypeSelect.style.borderColor = '';
+
                     const updatedData = {
                         date: document.getElementById('edit-date').value,
                         lead: document.getElementById('edit-lead-name').value,
@@ -1433,7 +1471,7 @@
                         company_revenue: document.getElementById('edit-revenue').value,
                         channel: document.getElementById('edit-channel').value,
                         qualification: document.getElementById('edit-qualification').value,
-                        type: document.getElementById('edit-activity-type').value,
+                        type: activityTypeSelect.value,
                         status: document.getElementById('edit-activity-status').value,
                         proposal_sent: document.getElementById('edit-proposal-sent').value,
                         reuniao_resgatada: document.getElementById('edit-reuniao-resgatada').value,
