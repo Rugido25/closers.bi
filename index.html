@@ -986,9 +986,25 @@
                         const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
                             const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
                             const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
-                            const hadNoShow = activities.some(a => a.lead === lead && a.status === 'No Show');
-                            
-                            return !hasAdvanced && !isClosed && !hadNoShow;
+
+                            // Find all meetings for this lead at the previous stage
+                            const previousStageActivities = activities
+                                .filter(a => a.lead === lead && a.type === previousStage)
+                                .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+                            let isBlockedByNoShow = false;
+                            if (previousStageActivities.length > 0) {
+                                const latestMeeting = previousStageActivities[0];
+                                if (latestMeeting.status === 'No Show') {
+                                    // If the latest meeting was a No Show, check if it was ever rescued.
+                                    const wasRescued = activities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
+                                    if (!wasRescued) {
+                                        isBlockedByNoShow = true; // Block only if latest was No Show AND it wasn't rescued
+                                    }
+                                }
+                            }
+
+                            return !hasAdvanced && !isClosed && !isBlockedByNoShow;
                         });
 
                         let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
