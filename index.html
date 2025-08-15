@@ -987,19 +987,17 @@
                             const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
                             const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
 
-                            // Find all meetings for this lead at the previous stage
                             const previousStageActivities = activities
                                 .filter(a => a.lead === lead && a.type === previousStage)
-                                .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+                                .sort((a, b) => new Date(b.date) - new Date(a.date));
 
                             let isBlockedByNoShow = false;
                             if (previousStageActivities.length > 0) {
                                 const latestMeeting = previousStageActivities[0];
                                 if (latestMeeting.status === 'No Show') {
-                                    // If the latest meeting was a No Show, check if it was ever rescued.
                                     const wasRescued = activities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
                                     if (!wasRescued) {
-                                        isBlockedByNoShow = true; // Block only if latest was No Show AND it wasn't rescued
+                                        isBlockedByNoShow = true;
                                     }
                                 }
                             }
@@ -1174,7 +1172,25 @@
                     const stageContainer = document.getElementById('stage-pipeline-container');
                     const evolutionContainer = document.getElementById('evolution-pipeline-container');
                     const stages = ['R1', 'R2', 'R3', 'R4', 'R5'];
-                    const stageCounts = stages.map(stage => new Set(data.filter(act => act.type === stage).map(act => act.lead)).size);
+
+                    const allLeadsInR1 = new Set(data.filter(act => act.type === 'R1').map(act => act.lead));
+                    const noShowLeads = new Set();
+                    allLeadsInR1.forEach(lead => {
+                        const r1Activities = data.filter(a => a.lead === lead && a.type === 'R1').sort((a, b) => new Date(b.date) - new Date(a.date));
+                        if (r1Activities.length > 0) {
+                            const latestR1 = r1Activities[0];
+                            if (latestR1.status === 'No Show') {
+                                const wasRescued = data.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
+                                if (!wasRescued) {
+                                    noShowLeads.add(lead);
+                                }
+                            }
+                        }
+                    });
+
+                    const filteredDataForPipeline = data.filter(act => !noShowLeads.has(act.lead));
+
+                    const stageCounts = stages.map(stage => new Set(filteredDataForPipeline.filter(act => act.type === stage).map(act => act.lead)).size);
                     const maxStageCount = Math.max(...stageCounts, 1);
                     let stageHTML = '';
                     stages.forEach((stage, index) => {
@@ -1471,8 +1487,13 @@
                 editForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const id = document.getElementById('edit-activity-id').value;
-                    const activityTypeSelect = document.getElementById('edit-activity-type');
                     
+                    if (!id) {
+                        showNotification('ERRO: ID da atividade não encontrado. Não foi possível salvar.', 'error');
+                        return;
+                    }
+
+                    const activityTypeSelect = document.getElementById('edit-activity-type');
                     if (!activityTypeSelect.value) {
                         showNotification('O campo "Tipo de Reunião" é obrigatório.', 'error');
                         activityTypeSelect.style.borderColor = 'var(--error-color)';
