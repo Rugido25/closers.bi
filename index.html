@@ -285,7 +285,7 @@
 
         .kpi-large-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 24px;
         }
 
@@ -334,6 +334,11 @@
         
         .pipeline-widget-grid {
              display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
+        .ranking-grid {
+            display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 24px;
         }
@@ -540,16 +545,21 @@
                 <div class="dashboard-grid">
                     <div class="kpi-large-grid">
                         <div class="kpi-card-large">
-                            <div class="title">Valor Total Vendido</div>
-                            <div class="value" id="kpi-valor-vendas">R$ 0,00</div>
+                            <div class="title">Vendas Agência</div>
+                            <div class="value" id="kpi-valor-vendas-agencia">R$ 0,00</div>
                         </div>
                         <div class="kpi-card-large">
-                            <div class="title">Negócios Ganhos</div>
-                            <div class="value" id="kpi-vendas">0</div>
+                            <div class="title">Vendas Escola</div>
+                            <div class="value" id="kpi-valor-vendas-escola">R$ 0,00</div>
+                        </div>
+                        <div class="kpi-card-large">
+                            <div class="title">Valor Total Vendido</div>
+                            <div class="value" id="kpi-valor-vendas-total">R$ 0,00</div>
                         </div>
                     </div>
 
                     <div class="kpi-grid">
+                        <div class="kpi-card-small"><div class="title">Negócios Ganhos</div><div class="value" id="kpi-vendas">0</div></div>
                         <div class="kpi-card-small"><div class="title">Leads em Atendimento</div><div class="value" id="kpi-leads-atendimento">0</div></div>
                         <div class="kpi-card-small"><div class="title">Total de Reuniões</div><div class="value" id="kpi-reunioes-totais">0</div></div>
                         <div class="kpi-card-small"><div class="title">Reuniões Realizadas</div><div class="value" id="kpi-realizadas">0</div></div>
@@ -577,9 +587,19 @@
                             <div id="evolution-pipeline-container"></div>
                         </div>
                     </div>
-                    <div class="widget ranking-widget">
-                        <h3>Ranking de Vendas</h3>
-                        <div id="ranking-container"></div>
+                    <div class="ranking-grid">
+                        <div class="widget ranking-widget">
+                            <h3>Ranking de Vendas - Geral</h3>
+                            <div id="ranking-container-geral"></div>
+                        </div>
+                        <div class="widget ranking-widget">
+                            <h3>Ranking de Vendas - Agência</h3>
+                            <div id="ranking-container-agencia"></div>
+                        </div>
+                        <div class="widget ranking-widget">
+                            <h3>Ranking de Vendas - Escola</h3>
+                            <div id="ranking-container-escola"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -705,6 +725,12 @@
                         </select>
                     </div>
                     <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
+                     <div class="form-group"><label for="edit-sector">Setor</label>
+                        <select id="edit-sector">
+                            <option>Agência</option>
+                            <option>Escola</option>
+                        </select>
+                    </div>
                     <div class="form-group"><label for="edit-qualification">Qualificação</label>
                         <select id="edit-qualification">
                             <option>Não Identificado</option>
@@ -929,6 +955,12 @@
                                 </select>
                             </div>
                             <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
+                             <div class="form-group"><label for="sector-${blockId}">Setor</label>
+                                <select id="sector-${blockId}">
+                                    <option>Agência</option>
+                                    <option>Escola</option>
+                                </select>
+                            </div>
                             <div class="form-group"><label for="qualification-${blockId}">Qualificação</label>
                                 <select id="qualification-${blockId}">
                                     <option>Não Identificado</option>
@@ -1030,6 +1062,7 @@
                                 document.getElementById(`channel-${blockId}`).value = previousActivity.channel || 'Inbound';
                                 document.getElementById(`qualification-${blockId}`).value = previousActivity.qualification || 'Qualificado';
                                 document.getElementById(`reuniao-resgatada-${blockId}`).value = previousActivity.reuniao_resgatada || 'Não';
+                                document.getElementById(`sector-${blockId}`).value = previousActivity.sector || 'Agência';
                             }
                         });
 
@@ -1089,7 +1122,7 @@
                         
                         const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
 
-                        const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome'];
+                        const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome', 'sector'];
                         
                         filtered = activities.filter(act => {
                             const activityDate = new Date(act.date + 'T00:00:00');
@@ -1123,8 +1156,17 @@
                 // --- Funções de Renderização do Dashboard ---
                 const updateDashboard = (data) => {
                     const vendas = data.filter(act => act.deal_outcome === 'Ganha');
-                    const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                    document.getElementById('kpi-valor-vendas').textContent = formatCurrency(receitaTotal);
+                    const vendasAgencia = vendas.filter(v => v.sector === 'Agência');
+                    const vendasEscola = vendas.filter(v => v.sector === 'Escola');
+
+                    const receitaAgencia = vendasAgencia.reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                    const receitaEscola = vendasEscola.reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                    const receitaTotal = receitaAgencia + receitaEscola;
+
+                    document.getElementById('kpi-valor-vendas-agencia').textContent = formatCurrency(receitaAgencia);
+                    document.getElementById('kpi-valor-vendas-escola').textContent = formatCurrency(receitaEscola);
+                    document.getElementById('kpi-valor-vendas-total').textContent = formatCurrency(receitaTotal);
+                    
                     document.getElementById('kpi-vendas').textContent = vendas.length;
                     document.getElementById('kpi-propostas').textContent = data.filter(act => act.proposal_sent === 'Sim').length;
                     document.getElementById('kpi-reunioes-resgatadas').textContent = data.filter(act => act.reuniao_resgatada === 'Sim').length;
@@ -1212,21 +1254,35 @@
                 };
 
                 const updateRanking = (data) => {
-                    const rankingContainer = document.getElementById('ranking-container');
-                    const salesByCloser = data.filter(act => act.deal_outcome === 'Ganha').reduce((acc, act) => {
-                        if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
-                        acc[act.closer].total += (act.sale_value || 0); 
-                        acc[act.closer].count++; 
-                        return acc;
-                    }, {});
-                    const sortedClosers = Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
-                    let rankingHTML = '';
-                    if (sortedClosers.length === 0) { rankingHTML += '<p>Nenhuma venda registrada no período.</p>'; } 
-                    else { sortedClosers.forEach((closer, index) => {
-                        const initials = closer.name.split(' ').map(n => n[0]).join('');
-                        rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
-                    });}
-                    rankingContainer.innerHTML = rankingHTML;
+                    const renderRanking = (container, rankingData) => {
+                        let rankingHTML = '';
+                        if (rankingData.length === 0) {
+                            rankingHTML = '<p>Nenhuma venda registrada no período.</p>';
+                        } else {
+                            rankingData.forEach((closer, index) => {
+                                const initials = closer.name.split(' ').map(n => n[0]).join('');
+                                rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
+                            });
+                        }
+                        container.innerHTML = rankingHTML;
+                    };
+
+                    const calculateRanking = (filteredData) => {
+                        const salesByCloser = filteredData.filter(act => act.deal_outcome === 'Ganha').reduce((acc, act) => {
+                            if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
+                            acc[act.closer].total += (act.sale_value || 0); 
+                            acc[act.closer].count++; 
+                            return acc;
+                        }, {});
+                        return Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
+                    };
+
+                    // Geral
+                    renderRanking(document.getElementById('ranking-container-geral'), calculateRanking(data));
+                    // Agência
+                    renderRanking(document.getElementById('ranking-container-agencia'), calculateRanking(data.filter(d => d.sector === 'Agência')));
+                    // Escola
+                    renderRanking(document.getElementById('ranking-container-escola'), calculateRanking(data.filter(d => d.sector === 'Escola')));
                 };
 
                 // --- Lógica da Tabela de Histórico e Edição ---
@@ -1236,10 +1292,11 @@
                         historyContainer.innerHTML = `
                             <table>
                                 <thead>
-                                    <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Resultado</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th><th>Ações</th></tr>
+                                    <tr><th>Data</th><th>Closer</th><th>Setor</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Resultado</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th><th>Ações</th></tr>
                                     <tr class="table-filters">
                                         <td></td>
                                         <td><select class="history-filter" data-key="closer"></select></td>
+                                        <td><select class="history-filter" data-key="sector"><option value="">Todos</option><option>Agência</option><option>Escola</option></select></td>
                                         <td><input type="text" class="history-filter" data-key="bdr" placeholder="Filtrar..."></td>
                                         <td><input type="text" class="history-filter" data-key="lead" placeholder="Filtrar..."></td>
                                         <td><select class="history-filter" data-key="channel"></select></td>
@@ -1314,7 +1371,7 @@
                             notesHTML = notes;
                         }
                         
-                        row.innerHTML = `<td>${new Date(act.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
+                        row.innerHTML = `<td>${new Date(act.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.sector || 'N/A'}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
                         
                         finalTableBody.appendChild(row);
                     });
@@ -1370,6 +1427,7 @@
                                 lead: leadNameInput.value.trim(), 
                                 bdr: document.getElementById(`bdr-${blockId}`).value,
                                 channel: document.getElementById(`channel-${blockId}`).value, 
+                                sector: document.getElementById(`sector-${blockId}`).value,
                                 type: activityTypeSelect.value, 
                                 status: document.getElementById(`activity-status-${blockId}`).value, 
                                 evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
@@ -1416,6 +1474,7 @@
                     document.getElementById('edit-bdr').value = activity.bdr;
                     document.getElementById('edit-revenue').value = activity.company_revenue;
                     document.getElementById('edit-channel').value = activity.channel;
+                    document.getElementById('edit-sector').value = activity.sector || 'Agência';
                     document.getElementById('edit-qualification').value = activity.qualification;
                     document.getElementById('edit-activity-type').value = activity.type;
                     document.getElementById('edit-activity-status').value = activity.status;
@@ -1507,6 +1566,7 @@
                         bdr: document.getElementById('edit-bdr').value,
                         company_revenue: document.getElementById('edit-revenue').value,
                         channel: document.getElementById('edit-channel').value,
+                        sector: document.getElementById('edit-sector').value,
                         qualification: document.getElementById('edit-qualification').value,
                         type: activityTypeSelect.value,
                         status: document.getElementById('edit-activity-status').value,
