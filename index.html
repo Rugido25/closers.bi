@@ -285,7 +285,7 @@
 
         .kpi-large-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 24px;
         }
 
@@ -332,24 +332,19 @@
         .ranking-item .info .details { color: var(--text-light); font-size: 0.9rem; }
         .ranking-item .value { margin-left: auto; font-weight: 700; font-size: 1.1rem; }
         
-        .pipeline-widget-grid {
-             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 24px;
-        }
-        .ranking-grid {
+        .pipeline-widget-grid, .ranking-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 24px;
         }
         .pipeline-item { display: grid; grid-template-columns: 100px 1fr 40px; gap: 15px; align-items: center; margin-bottom: 16px; }
         .pipeline-label { color: var(--text-light); font-weight: 500; text-align: right; }
-        .pipeline-bar-bg { width: 100%; height: 12px; background-color: var(--main-bg); border-radius: 6px; }
+        .pipeline-bar-bg { width: 100%; height: 12px; background-color: var(--main-bg); border-radius: 6px; overflow: hidden; }
         .pipeline-bar-fg { height: 100%; background-color: var(--highlight-pink); border-radius: 6px; transition: width 0.5s ease-out; }
         .pipeline-value { font-weight: 700; text-align: left; }
         
         .channel-metrics-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .channel-metric-item { text-align: center; padding: 15px; background: var(--form-bg); border-radius: 6px; }
+        .channel-metric-item { text-align: center; padding: 15px; background: var(--form-bg); border-radius: 8px; }
         .channel-metric-item .channel-name { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; }
         .channel-metric-item .metric { display: flex; justify-content: space-between; font-size: 1rem; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
         .channel-metric-item .metric:last-child { border-bottom: none; }
@@ -516,6 +511,7 @@
                                 <option>Inbound</option>
                                 <option>Outbound</option>
                                 <option>Webinar</option>
+                                <option>Instagram</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -724,7 +720,7 @@
                             <option>acima de 750k</option>
                         </select>
                     </div>
-                    <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
+                    <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Instagram</option></select></div>
                      <div class="form-group"><label for="edit-sector">Setor</label>
                         <select id="edit-sector">
                             <option>Agência</option>
@@ -954,7 +950,7 @@
                                     <option>acima de 750k</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option></select></div>
+                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Instagram</option></select></div>
                              <div class="form-group"><label for="sector-${blockId}">Setor</label>
                                 <select id="sector-${blockId}">
                                     <option>Agência</option>
@@ -1192,7 +1188,7 @@
                 
                 const updateChannelMetrics = (data) => {
                     const container = document.getElementById('channel-metrics-container');
-                    const channels = ['Inbound', 'Outbound', 'Webinar'];
+                    const channels = ['Inbound', 'Outbound', 'Webinar', 'Instagram'];
                     let html = '';
                     channels.forEach(channel => {
                         const channelData = data.filter(act => act.channel === channel);
