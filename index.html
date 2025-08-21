@@ -1106,7 +1106,7 @@
                         const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
 
                         filtered = activities.filter(act => {
-                            const activityDate = new Date(act.date + 'T00:00:00');
+                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
                             const userMatch = selectedUser === 'all' || act.closer === selectedUser;
                             const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
                             const startDateMatch = !startDate || activityDate >= startDate;
@@ -1125,7 +1125,7 @@
                         const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome', 'sector'];
                         
                         filtered = activities.filter(act => {
-                            const activityDate = new Date(act.date + 'T00:00:00');
+                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
                             const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
                             if (!dateMatch) return false;
 
@@ -1371,7 +1371,8 @@
                             notesHTML = notes;
                         }
                         
-                        row.innerHTML = `<td>${new Date(act.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.sector || 'N/A'}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
+                        const displayDate = act.sale_date || act.date;
+                        row.innerHTML = `<td>${new Date(displayDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.sector || 'N/A'}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
                         
                         finalTableBody.appendChild(row);
                     });
@@ -1523,7 +1524,7 @@
                             const latestActivity = leadActivities[0];
                             const { error } = await supabaseClient
                                 .from('activities')
-                                .update({ deal_outcome: 'Perdida' })
+                                .update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) })
                                 .eq('id', latestActivity.id);
 
                             if (error) {
@@ -1655,10 +1656,12 @@
                     if (!id) return;
 
                     let updatedData = {};
+                    const saleDate = toISODateString(new Date());
+
                     if (button.classList.contains('btn-ganha')) {
-                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value) };
+                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value), sale_date: saleDate };
                     } else if (button.classList.contains('btn-perdida')) {
-                        updatedData = { deal_outcome: 'Perdida' };
+                        updatedData = { deal_outcome: 'Perdida', sale_date: saleDate };
                     } else {
                         return;
                     }
