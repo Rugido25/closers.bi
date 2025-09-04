@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BI Grupo Rugido</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
@@ -138,7 +139,7 @@
         }
         header .logo { font-size: 1.5rem; font-weight: 700; }
         header .logo span { color: var(--highlight-pink); }
-        header nav { display: flex; gap: 10px; }
+        header nav { display: flex; gap: 10px; flex-wrap: wrap;}
         header .nav-link {
             color: #E2E8F0;
             text-decoration: none;
@@ -227,8 +228,8 @@
             font-family: 'Roboto', sans-serif;
             font-size: 0.9rem;
         }
-        #custom-date-filters, #history-custom-date-filters { display: none; gap: 15px; }
-        #custom-date-filters.visible, #history-custom-date-filters.visible { display: flex; }
+        #custom-date-filters, #history-custom-date-filters, #recebiveis-custom-date-filters { display: none; gap: 15px; }
+        #custom-date-filters.visible, #history-custom-date-filters.visible, #recebiveis-custom-date-filters.visible { display: flex; }
         
         .checkbox-group {
             display: flex;
@@ -368,8 +369,8 @@
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
         th { background-color: var(--main-bg); font-weight: 500; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; }
         td { color: var(--text-dark); }
-        tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
-        tbody tr:hover { background-color: var(--form-bg); }
+        tbody tr { transition: background-color 0.2s ease; }
+        tbody tr:not(.no-hover):hover { background-color: var(--form-bg); cursor: pointer; }
         .table-filters input, .table-filters select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
         .notes-cell { max-width: 250px; white-space: normal; word-break: break-word; }
         .notes-text-full { display: none; }
@@ -402,11 +403,25 @@
         .proposal-info .lead-name.editable { cursor: pointer; color: var(--highlight-pink); text-decoration: underline; }
         .proposal-info .details { font-size: 0.9rem; color: var(--text-light); }
         .proposal-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .proposal-actions button { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s ease; }
-        .proposal-actions button:hover { opacity: 0.8; }
+        .proposal-actions button, .recebiveis-save-btn { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s ease; }
+        .proposal-actions button:hover, .recebiveis-save-btn:hover { opacity: 0.8; }
         .btn-ganha { background-color: var(--success-color); color: white; }
         .btn-perdida { background-color: var(--error-color); color: white; }
         .end-deal-btn { background-color: var(--text-light); color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; }
+        .recebiveis-save-btn { background-color: var(--header-bg); color: white; }
+        .status-pago { color: var(--success-color); font-weight: bold; }
+        .status-pendente { color: var(--error-color); font-weight: bold; }
+        .chart-container {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
     </style>
 </head>
 <body>
@@ -478,11 +493,15 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     Histórico
                 </a>
+                <a href="#" class="nav-link" data-target="recebiveis">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    Recebíveis
+                </a>
             </nav>
             <div class="header-actions">
                 <button id="theme-toggle-btn">
-                     <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                      <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                      <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                 </button>
                 <span id="user-display-name" class="user-display-name"></span>
                 <button id="logout-button" class="action-button">Sair</button>
@@ -521,6 +540,7 @@
                                 <option value="today">Hoje</option>
                                 <option value="yesterday">Ontem</option>
                                 <option value="this_month">Este Mês</option>
+                                <option value="last_month">Mês Passado</option>
                                 <option value="all_time">Máximo</option>
                                 <option value="custom">Personalizado</option>
                             </select>
@@ -670,6 +690,7 @@
                             <option value="today">Hoje</option>
                             <option value="yesterday">Ontem</option>
                             <option value="this_month">Este Mês</option>
+                            <option value="last_month">Mês Passado</option>
                             <option value="custom">Personalizado</option>
                         </select>
                     </div>
@@ -696,6 +717,53 @@
                     <button id="clear-history-filters-btn" class="action-button" style="align-self: flex-end;">Limpar Filtros</button>
                 </div>
                 <div id="history-table-container"></div>
+            </section>
+
+            <section id="recebiveis" class="content-section">
+                <div class="page-header">
+                    <div>
+                        <h2>Controle de Recebíveis</h2>
+                        <p>Gerencie os pagamentos das vendas realizadas.</p>
+                    </div>
+                    <div class="dashboard-filters">
+                        <div class="filter-group">
+                            <label for="recebiveis-closer-filter">Closer</label>
+                            <select id="recebiveis-closer-filter"></select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="recebiveis-date-preset-filter">Período da Venda</label>
+                            <select id="recebiveis-date-preset-filter">
+                                <option value="all_time">Máximo</option>
+                                <option value="this_month">Este Mês</option>
+                                <option value="last_month">Mês Passado</option>
+                                <option value="last7days">Últimos 7 dias</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </div>
+                        <div id="recebiveis-custom-date-filters">
+                            <div class="filter-group">
+                                <label for="recebiveis-start-date-filter">De</label>
+                                <input type="date" id="recebiveis-start-date-filter">
+                            </div>
+                            <div class="filter-group">
+                                <label for="recebiveis-end-date-filter">Até</label>
+                                <input type="date" id="recebiveis-end-date-filter">
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label for="recebiveis-status-filter">Status</label>
+                            <select id="recebiveis-status-filter">
+                                <option value="all">Todos</option>
+                                <option value="paid">Pago</option>
+                                <option value="not_paid" selected>Não Pago</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="recebiveis-chart"></canvas>
+                </div>
+                <div id="recebiveis-table-container"></div>
             </section>
         </main>
     </div>
@@ -829,6 +897,7 @@
                 const userId = user.id;
 
                 let activities = [];
+                let recebiveisChart = null;
 
                 // --- Seletores de Elementos da Aplicação ---
                 const navLinks = document.querySelectorAll('.nav-link');
@@ -836,6 +905,7 @@
                 const historyContainer = document.getElementById('history-table-container');
                 const propostasContainer = document.getElementById('propostas-container');
                 const propostasCloserFilter = document.getElementById('propostas-closer-filter');
+                const recebiveisContainer = document.getElementById('recebiveis-table-container');
                 const form = document.getElementById('activity-form');
                 const lancamentosContainer = document.getElementById('lancamentos-container');
                 const addLancamentoBtn = document.getElementById('add-lancamento-btn');
@@ -863,6 +933,13 @@
                 const historyStartDateFilter = document.getElementById('history-start-date-filter');
                 const historyEndDateFilter = document.getElementById('history-end-date-filter');
                 const historyTypeFilter = document.getElementById('history-type-filter');
+                const recebiveisCloserFilter = document.getElementById('recebiveis-closer-filter');
+                const recebiveisDatePresetFilter = document.getElementById('recebiveis-date-preset-filter');
+                const recebiveisCustomDateFilters = document.getElementById('recebiveis-custom-date-filters');
+                const recebiveisStartDateFilter = document.getElementById('recebiveis-start-date-filter');
+                const recebiveisEndDateFilter = document.getElementById('recebiveis-end-date-filter');
+                const recebiveisStatusFilter = document.getElementById('recebiveis-status-filter');
+
 
                 userDisplayName.textContent = userName;
 
@@ -894,9 +971,15 @@
                 });
 
                 const toISODateString = (date) => {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
+                    if (!date) return '';
+                    const d = new Date(date);
+                     // Adjust for timezone offset
+                    const timezoneOffset = d.getTimezoneOffset() * 60000;
+                    const adjustedDate = new Date(d.getTime() + timezoneOffset);
+
+                    const year = adjustedDate.getFullYear();
+                    const month = String(adjustedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(adjustedDate.getDate()).padStart(2, '0');
                     return `${year}-${month}-${day}`;
                 };
                 
@@ -1089,7 +1172,6 @@
                     activities = data;
                     await populateCloserFilters();
                     updateAllData();
-                    renderTable();
                 }
 
                 const filterActivities = (source) => {
@@ -1147,6 +1229,8 @@
                     updatePipelineWidgets(filteredData);
                     updateChannelMetrics(filteredData);
                     renderPropostas();
+                    renderTable(); // Histórico
+                    renderRecebiveis(); // Recebíveis
                 };
 
                 // --- Funções de Renderização do Dashboard ---
@@ -1196,12 +1280,12 @@
                         const channelRevenue = channelSales.reduce((sum, act) => sum + (act.sale_value || 0), 0);
                         const channelNoShows = channelData.filter(act => act.status === 'No Show').length;
                         html += `<div class="channel-metric-item">
-                                     <div class="channel-name">${channel}</div>
-                                     <div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div>
-                                     <div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div>
-                                     <div class="metric"><span class="metric-label">No Show</span><span class="metric-value">${channelNoShows}</span></div>
-                                     <div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div>
-                                   </div>`;
+                                    <div class="channel-name">${channel}</div>
+                                    <div class="metric"><span class="metric-label">Reuniões</span><span class="metric-value">${channelData.length}</span></div>
+                                    <div class="metric"><span class="metric-label">Vendas</span><span class="metric-value">${channelSales.length}</span></div>
+                                    <div class="metric"><span class="metric-label">No Show</span><span class="metric-value">${channelNoShows}</span></div>
+                                    <div class="metric"><span class="metric-label">Valor Vendas</span><span class="metric-value">${formatCurrency(channelRevenue)}</span></div>
+                                </div>`;
                     });
                     container.innerHTML = html;
                 };
@@ -1330,6 +1414,7 @@
                     filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
                         const row = document.createElement('tr');
                         row.dataset.id = act.id;
+                        row.classList.add('no-hover'); // Prevent hover on whole row
                         
                         const isOwner = act.closer_id === userId;
                         const leadHasNoShow = activities.some(a => a.lead === act.lead && a.status === 'No Show');
@@ -1671,7 +1756,207 @@
                         await fetchActivities();
                     }
                 });
+
+                 // --- Lógica da Seção de Recebíveis ---
+                 const renderRecebiveisChart = (sales) => {
+                    const ctx = document.getElementById('recebiveis-chart').getContext('2d');
+                    
+                    const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
+                    const totalRecebido = sales.reduce((sum, sale) => sum + (sale.valor_recebido || 0), 0);
+                    const saldoPendente = totalVendido - totalRecebido;
+
+                    if (recebiveisChart) {
+                        recebiveisChart.destroy();
+                    }
+
+                    recebiveisChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Valor Recebido', 'Saldo Pendente'],
+                            datasets: [{
+                                label: 'Status de Recebíveis',
+                                data: [totalRecebido, saldoPendente > 0 ? saldoPendente : 0],
+                                backgroundColor: [
+                                    'rgba(72, 187, 120, 0.8)', // --success-color
+                                    'rgba(245, 101, 101, 0.8)' // --error-color
+                                ],
+                                borderColor: [
+                                    'rgba(72, 187, 120, 1)',
+                                    'rgba(245, 101, 101, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: `Total Vendido: ${formatCurrency(totalVendido)}`
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed !== null) {
+                                                label += formatCurrency(context.parsed);
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    });
+                }
+
+                const renderRecebiveis = () => {
+                    const container = document.getElementById('recebiveis-table-container');
+                    const selectedCloser = recebiveisCloserFilter.value;
+                    const selectedStatus = recebiveisStatusFilter.value;
+                    
+                    const startDate = recebiveisStartDateFilter.value ? new Date(recebiveisStartDateFilter.value + 'T00:00:00') : null;
+                    const endDate = recebiveisEndDateFilter.value ? new Date(recebiveisEndDateFilter.value + 'T23:59:59') : null;
+
+                    const sales = activities.filter(act => {
+                        const isSale = act.deal_outcome === 'Ganha';
+                        if (!isSale) return false;
+                        
+                        // Filter by date of sale
+                        const saleDate = new Date(act.sale_date + 'T00:00:00');
+                        const closerMatch = selectedCloser === 'all' || act.closer === selectedCloser;
+                        const startDateMatch = !startDate || saleDate >= startDate;
+                        const endDateMatch = !endDate || saleDate <= endDate;
+
+                        // Filter by payment status
+                        const saleValue = act.sale_value || 0;
+                        const paidValue = act.valor_recebido || 0;
+                        const balance = saleValue - paidValue;
+                        let statusMatch = true;
+                        if (selectedStatus === 'paid') {
+                            statusMatch = balance <= 0;
+                        } else if (selectedStatus === 'not_paid') {
+                            statusMatch = balance > 0;
+                        }
+
+                        return closerMatch && startDateMatch && endDateMatch && statusMatch;
+                    });
+                    
+                    renderRecebiveisChart(sales);
+
+                    let tableHTML = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data Venda</th>
+                                    <th>Closer</th>
+                                    <th>Lead</th>
+                                    <th>Valor Venda</th>
+                                    <th>Valor Recebido</th>
+                                    <th>Data Receb.</th>
+                                    <th>Saldo Devedor</th>
+                                    <th>Status</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    if (sales.length === 0) {
+                        tableHTML += `<tr><td colspan="9" style="text-align: center;">Nenhuma venda encontrada para os filtros selecionados.</td></tr>`;
+                    } else {
+                        sales.sort((a, b) => new Date(b.sale_date) - new Date(a.date)).forEach(sale => {
+                            const saleValue = sale.sale_value || 0;
+                            const paidValue = sale.valor_recebido || 0;
+                            const balance = saleValue - paidValue;
+                            const status = balance <= 0 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
+                            const paymentDate = sale.data_recebimento ? toISODateString(sale.data_recebimento) : toISODateString(new Date());
+
+                            tableHTML += `
+                                <tr class="no-hover">
+                                    <td>${new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                                    <td>${sale.closer}</td>
+                                    <td>${sale.lead}</td>
+                                    <td>${formatCurrency(saleValue)}</td>
+                                    <td><input type="number" class="recebivel-input" data-id="${sale.id}" value="${paidValue}" style="width: 120px; padding: 6px;"></td>
+                                    <td><input type="date" class="recebivel-date-input" data-id="${sale.id}" value="${paymentDate}" style="padding: 6px;"></td>
+                                    <td>${formatCurrency(balance)}</td>
+                                    <td>${status}</td>
+                                    <td><button class="recebiveis-save-btn" data-id="${sale.id}">Salvar</button></td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    tableHTML += `</tbody></table>`;
+                    container.innerHTML = tableHTML;
+                };
                 
+                recebiveisContainer.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('recebiveis-save-btn')) {
+                        const id = e.target.dataset.id;
+                        const inputAmount = recebiveisContainer.querySelector(`.recebivel-input[data-id="${id}"]`);
+                        const inputDate = recebiveisContainer.querySelector(`.recebivel-date-input[data-id="${id}"]`);
+                        
+                        const newPaidValue = parseFloat(inputAmount.value) || 0;
+                        const newPaymentDate = inputDate.value || null;
+
+                        const { error } = await supabaseClient
+                            .from('activities')
+                            .update({ valor_recebido: newPaidValue, data_recebimento: newPaymentDate })
+                            .eq('id', id);
+
+                        if (error) {
+                            showNotification(`Erro ao salvar valor: ${error.message}`, 'error');
+                            console.error(error);
+                        } else {
+                            showNotification('Valor recebido salvo com sucesso!', 'success');
+                            // INÍCIO DA CORREÇÃO: Atualiza os dados localmente e redesenha sem recarregar tudo
+                            const activityIndex = activities.findIndex(act => act.id == id);
+                            if (activityIndex !== -1) {
+                                activities[activityIndex].valor_recebido = newPaidValue;
+                                activities[activityIndex].data_recebimento = newPaymentDate;
+                            }
+                            renderRecebiveis();
+                            // FIM DA CORREÇÃO
+                        }
+                    }
+                });
+                
+                const handleRecebiveisDatePresetChange = () => {
+                    const preset = recebiveisDatePresetFilter.value;
+                    const today = new Date();
+                    let start = new Date();
+                    let end = new Date();
+
+                    if (preset === 'custom') {
+                        recebiveisCustomDateFilters.classList.add('visible');
+                        return;
+                    }
+                    
+                    recebiveisCustomDateFilters.classList.remove('visible');
+
+                    switch(preset) {
+                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+                        case 'last_month':
+                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                            end = new Date(today.getFullYear(), today.getMonth(), 0);
+                            break;
+                        case 'last7days': start.setDate(today.getDate() - 6); break;
+                        case 'all_time': start = null; end = null; break;
+                    }
+                    
+                    recebiveisStartDateFilter.value = start ? toISODateString(start) : '';
+                    recebiveisEndDateFilter.value = end ? toISODateString(end) : '';
+                    renderRecebiveis();
+                };
+
                 // --- Lógica dos Filtros e Navegação ---
                 const handleHistoryDatePresetChange = () => {
                     const preset = historyDatePresetFilter.value;
@@ -1690,6 +1975,10 @@
                         case 'today': break;
                         case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
                         case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+                        case 'last_month':
+                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                            end = new Date(today.getFullYear(), today.getMonth(), 0);
+                            break;
                         case 'last7days': start.setDate(today.getDate() - 6); break;
                         case 'all_time': start = null; end = null; break;
                     }
@@ -1716,6 +2005,10 @@
                         case 'today': break;
                         case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
                         case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+                        case 'last_month':
+                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                            end = new Date(today.getFullYear(), today.getMonth(), 0);
+                            break;
                         case 'last7days': start.setDate(today.getDate() - 6); break;
                         case 'all_time': start = null; end = null; break;
                     }
@@ -1738,11 +2031,13 @@
                     
                     userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
                     propostasCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
+                    recebiveisCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
 
                     closers.forEach(closer => {
                         const optionHTML = `<option value="${closer}">${closer}</option>`;
                         userFilter.innerHTML += optionHTML;
                         propostasCloserFilter.innerHTML += optionHTML;
+                        recebiveisCloserFilter.innerHTML += optionHTML;
                     });
                     
                     closerNameForm.innerHTML = `<option value="${userName}">${userName}</option>`;
@@ -1768,6 +2063,20 @@
                 historyStartDateFilter.addEventListener('change', renderTable);
                 historyEndDateFilter.addEventListener('change', renderTable);
                 historyTypeFilter.addEventListener('change', renderTable);
+                
+                recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
+                recebiveisDatePresetFilter.addEventListener('change', handleRecebiveisDatePresetChange);
+                recebiveisStatusFilter.addEventListener('change', renderRecebiveis);
+                recebiveisStartDateFilter.addEventListener('change', () => {
+                    recebiveisDatePresetFilter.value = 'custom';
+                    recebiveisCustomDateFilters.classList.add('visible');
+                    renderRecebiveis();
+                });
+                recebiveisEndDateFilter.addEventListener('change', () => {
+                    recebiveisDatePresetFilter.value = 'custom';
+                    recebiveisCustomDateFilters.classList.add('visible');
+                    renderRecebiveis();
+                });
 
 
                 navLinks.forEach(link => {
@@ -1785,6 +2094,7 @@
                 createLancamentoBlock();
                 await fetchActivities();
                 handleDashboardDatePresetChange();
+                handleRecebiveisDatePresetChange();
             };
 
             // --- Lógica de Autenticação ---
@@ -1858,3 +2168,4 @@
     </script>
 </body>
 </html>
+
