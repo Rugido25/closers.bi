@@ -228,8 +228,8 @@
             font-family: 'Roboto', sans-serif;
             font-size: 0.9rem;
         }
-        #custom-date-filters, #history-custom-date-filters, #recebiveis-custom-date-filters { display: none; gap: 15px; }
-        #custom-date-filters.visible, #history-custom-date-filters.visible, #recebiveis-custom-date-filters.visible { display: flex; }
+        #custom-date-filters, #history-custom-date-filters, #recebiveis-custom-date-filters, #recebiveis-payment-custom-date-filters { display: none; gap: 15px; }
+        #custom-date-filters.visible, #history-custom-date-filters.visible, #recebiveis-custom-date-filters.visible, #recebiveis-payment-custom-date-filters.visible { display: flex; }
         
         .checkbox-group {
             display: flex;
@@ -309,6 +309,17 @@
             font-size: 2.5rem; 
             font-weight: 700; 
             color: var(--highlight-pink);
+        }
+        
+        /* Custom colors for Recebiveis KPIs */
+        #recebiveis-total-vendido {
+            color: var(--text-dark); /* Keep it the standard text color */
+        }
+        #recebiveis-valor-recebido {
+            color: var(--success-color); /* Green */
+        }
+        #recebiveis-saldo-pendente {
+            color: var(--error-color); /* Red */
         }
 
         .widget { 
@@ -411,16 +422,6 @@
         .recebiveis-save-btn { background-color: var(--header-bg); color: white; }
         .status-pago { color: var(--success-color); font-weight: bold; }
         .status-pendente { color: var(--error-color); font-weight: bold; }
-        .chart-container {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            margin-bottom: 24px;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
 
     </style>
 </head>
@@ -751,6 +752,26 @@
                             </div>
                         </div>
                         <div class="filter-group">
+                            <label for="recebiveis-payment-date-preset-filter">Período do Recebimento</label>
+                            <select id="recebiveis-payment-date-preset-filter">
+                                <option value="all_time">Máximo</option>
+                                <option value="this_month">Este Mês</option>
+                                <option value="last_month">Mês Passado</option>
+                                <option value="last7days">Últimos 7 dias</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </div>
+                        <div id="recebiveis-payment-custom-date-filters">
+                            <div class="filter-group">
+                                <label for="recebiveis-payment-start-date-filter">De</label>
+                                <input type="date" id="recebiveis-payment-start-date-filter">
+                            </div>
+                            <div class="filter-group">
+                                <label for="recebiveis-payment-end-date-filter">Até</label>
+                                <input type="date" id="recebiveis-payment-end-date-filter">
+                            </div>
+                        </div>
+                        <div class="filter-group">
                             <label for="recebiveis-status-filter">Status</label>
                             <select id="recebiveis-status-filter">
                                 <option value="all">Todos</option>
@@ -760,8 +781,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="recebiveis-chart"></canvas>
+                <div class="kpi-large-grid" style="margin-bottom: 24px;">
+                    <div class="kpi-card-large">
+                        <div class="title">Total Vendido</div>
+                        <div class="value" id="recebiveis-total-vendido">R$ 0,00</div>
+                    </div>
+                    <div class="kpi-card-large">
+                        <div class="title">Valor Recebido</div>
+                        <div class="value" id="recebiveis-valor-recebido">R$ 0,00</div>
+                    </div>
+                    <div class="kpi-card-large">
+                        <div class="title">Saldo Pendente</div>
+                        <div class="value" id="recebiveis-saldo-pendente">R$ 0,00</div>
+                    </div>
                 </div>
                 <div id="recebiveis-table-container"></div>
             </section>
@@ -897,7 +929,6 @@
                 const userId = user.id;
 
                 let activities = [];
-                let recebiveisChart = null;
 
                 // --- Seletores de Elementos da Aplicação ---
                 const navLinks = document.querySelectorAll('.nav-link');
@@ -938,6 +969,10 @@
                 const recebiveisCustomDateFilters = document.getElementById('recebiveis-custom-date-filters');
                 const recebiveisStartDateFilter = document.getElementById('recebiveis-start-date-filter');
                 const recebiveisEndDateFilter = document.getElementById('recebiveis-end-date-filter');
+                const recebiveisPaymentDatePresetFilter = document.getElementById('recebiveis-payment-date-preset-filter');
+                const recebiveisPaymentCustomDateFilters = document.getElementById('recebiveis-payment-custom-date-filters');
+                const recebiveisPaymentStartDateFilter = document.getElementById('recebiveis-payment-start-date-filter');
+                const recebiveisPaymentEndDateFilter = document.getElementById('recebiveis-payment-end-date-filter');
                 const recebiveisStatusFilter = document.getElementById('recebiveis-status-filter');
 
 
@@ -1757,84 +1792,34 @@
                     }
                 });
 
-                 // --- Lógica da Seção de Recebíveis ---
-                 const renderRecebiveisChart = (sales) => {
-                    const ctx = document.getElementById('recebiveis-chart').getContext('2d');
-                    
-                    const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
-                    const totalRecebido = sales.reduce((sum, sale) => sum + (sale.valor_recebido || 0), 0);
-                    const saldoPendente = totalVendido - totalRecebido;
-
-                    if (recebiveisChart) {
-                        recebiveisChart.destroy();
-                    }
-
-                    recebiveisChart = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: ['Valor Recebido', 'Saldo Pendente'],
-                            datasets: [{
-                                label: 'Status de Recebíveis',
-                                data: [totalRecebido, saldoPendente > 0 ? saldoPendente : 0],
-                                backgroundColor: [
-                                    'rgba(72, 187, 120, 0.8)', // --success-color
-                                    'rgba(245, 101, 101, 0.8)' // --error-color
-                                ],
-                                borderColor: [
-                                    'rgba(72, 187, 120, 1)',
-                                    'rgba(245, 101, 101, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                },
-                                title: {
-                                    display: true,
-                                    text: `Total Vendido: ${formatCurrency(totalVendido)}`
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.label || '';
-                                            if (label) {
-                                                label += ': ';
-                                            }
-                                            if (context.parsed !== null) {
-                                                label += formatCurrency(context.parsed);
-                                            }
-                                            return label;
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                    });
-                }
-
+                // --- Lógica da Seção de Recebíveis ---
                 const renderRecebiveis = () => {
                     const container = document.getElementById('recebiveis-table-container');
                     const selectedCloser = recebiveisCloserFilter.value;
                     const selectedStatus = recebiveisStatusFilter.value;
                     
-                    const startDate = recebiveisStartDateFilter.value ? new Date(recebiveisStartDateFilter.value + 'T00:00:00') : null;
-                    const endDate = recebiveisEndDateFilter.value ? new Date(recebiveisEndDateFilter.value + 'T23:59:59') : null;
+                    const saleStartDate = recebiveisStartDateFilter.value ? new Date(recebiveisStartDateFilter.value + 'T00:00:00') : null;
+                    const saleEndDate = recebiveisEndDateFilter.value ? new Date(recebiveisEndDateFilter.value + 'T23:59:59') : null;
+                    const paymentStartDate = recebiveisPaymentStartDateFilter.value ? new Date(recebiveisPaymentStartDateFilter.value + 'T00:00:00') : null;
+                    const paymentEndDate = recebiveisPaymentEndDateFilter.value ? new Date(recebiveisPaymentEndDateFilter.value + 'T23:59:59') : null;
 
                     const sales = activities.filter(act => {
                         const isSale = act.deal_outcome === 'Ganha';
                         if (!isSale) return false;
                         
-                        // Filter by date of sale
-                        const saleDate = new Date(act.sale_date + 'T00:00:00');
                         const closerMatch = selectedCloser === 'all' || act.closer === selectedCloser;
-                        const startDateMatch = !startDate || saleDate >= startDate;
-                        const endDateMatch = !endDate || saleDate <= endDate;
+                        
+                        let saleDateMatch = true;
+                        if (saleStartDate || saleEndDate) {
+                            if (!act.sale_date) {
+                                saleDateMatch = false;
+                            } else {
+                                const saleDateParts = act.sale_date.split('-');
+                                const saleDate = new Date(saleDateParts[0], saleDateParts[1] - 1, saleDateParts[2]);
+                                saleDateMatch = (!saleStartDate || saleDate >= saleStartDate) && (!saleEndDate || saleDate <= saleEndDate);
+                            }
+                        }
 
-                        // Filter by payment status
                         const saleValue = act.sale_value || 0;
                         const paidValue = act.valor_recebido || 0;
                         const balance = saleValue - paidValue;
@@ -1844,12 +1829,31 @@
                         } else if (selectedStatus === 'not_paid') {
                             statusMatch = balance > 0;
                         }
+                        
+                        let paymentDateMatch = true;
+                        if (paymentStartDate || paymentEndDate) {
+                            if (!act.data_recebimento) {
+                                paymentDateMatch = false; 
+                            } else {
+                                const paymentDateParts = act.data_recebimento.split('-');
+                                const paymentDate = new Date(paymentDateParts[0], paymentDateParts[1] - 1, paymentDateParts[2]);
+                                const paymentStartDateMatch = !paymentStartDate || paymentDate >= paymentStartDate;
+                                const paymentEndDateMatch = !paymentEndDate || paymentDate <= paymentEndDate;
+                                paymentDateMatch = paymentStartDateMatch && paymentEndDateMatch;
+                            }
+                        }
 
-                        return closerMatch && startDateMatch && endDateMatch && statusMatch;
+                        return closerMatch && saleDateMatch && statusMatch && paymentDateMatch;
                     });
                     
-                    renderRecebiveisChart(sales);
+                    const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
+                    const totalRecebido = sales.reduce((sum, sale) => sum + (sale.valor_recebido || 0), 0);
+                    const saldoPendente = totalVendido - totalRecebido;
 
+                    document.getElementById('recebiveis-total-vendido').textContent = formatCurrency(totalVendido);
+                    document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebido);
+                    document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(saldoPendente);
+                    
                     let tableHTML = `
                         <table>
                             <thead>
@@ -1871,7 +1875,11 @@
                     if (sales.length === 0) {
                         tableHTML += `<tr><td colspan="9" style="text-align: center;">Nenhuma venda encontrada para os filtros selecionados.</td></tr>`;
                     } else {
-                        sales.sort((a, b) => new Date(b.sale_date) - new Date(a.date)).forEach(sale => {
+                         sales.sort((a, b) => {
+                            if (!a.sale_date) return 1;
+                            if (!b.sale_date) return -1;
+                            return new Date(b.sale_date) - new Date(a.sale_date);
+                        }).forEach(sale => {
                             const saleValue = sale.sale_value || 0;
                             const paidValue = sale.valor_recebido || 0;
                             const balance = saleValue - paidValue;
@@ -1880,7 +1888,7 @@
 
                             tableHTML += `
                                 <tr class="no-hover">
-                                    <td>${new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                                    <td>${sale.sale_date ? new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
                                     <td>${sale.closer}</td>
                                     <td>${sale.lead}</td>
                                     <td>${formatCurrency(saleValue)}</td>
@@ -1917,32 +1925,32 @@
                             console.error(error);
                         } else {
                             showNotification('Valor recebido salvo com sucesso!', 'success');
-                            // INÍCIO DA CORREÇÃO: Atualiza os dados localmente e redesenha sem recarregar tudo
                             const activityIndex = activities.findIndex(act => act.id == id);
                             if (activityIndex !== -1) {
                                 activities[activityIndex].valor_recebido = newPaidValue;
                                 activities[activityIndex].data_recebimento = newPaymentDate;
                             }
                             renderRecebiveis();
-                            // FIM DA CORREÇÃO
                         }
                     }
                 });
                 
-                const handleRecebiveisDatePresetChange = () => {
-                    const preset = recebiveisDatePresetFilter.value;
+                const handleDatePresetChange = (presetFilter, customFilters, startDateInput, endDateInput, callback) => {
+                    const preset = presetFilter.value;
                     const today = new Date();
                     let start = new Date();
                     let end = new Date();
 
                     if (preset === 'custom') {
-                        recebiveisCustomDateFilters.classList.add('visible');
+                        customFilters.classList.add('visible');
                         return;
                     }
                     
-                    recebiveisCustomDateFilters.classList.remove('visible');
+                    customFilters.classList.remove('visible');
 
                     switch(preset) {
+                        case 'today': break;
+                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
                         case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
                         case 'last_month':
                             start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -1952,72 +1960,47 @@
                         case 'all_time': start = null; end = null; break;
                     }
                     
-                    recebiveisStartDateFilter.value = start ? toISODateString(start) : '';
-                    recebiveisEndDateFilter.value = end ? toISODateString(end) : '';
-                    renderRecebiveis();
+                    startDateInput.value = start ? toISODateString(start) : '';
+                    endDateInput.value = end ? toISODateString(end) : '';
+                    callback();
                 };
 
                 // --- Lógica dos Filtros e Navegação ---
-                const handleHistoryDatePresetChange = () => {
-                    const preset = historyDatePresetFilter.value;
-                    const today = new Date();
-                    let start = new Date();
-                    let end = new Date();
+                datePresetFilter.addEventListener('change', () => handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData));
+                startDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
+                endDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
+                
+                historyDatePresetFilter.addEventListener('change', () => handleDatePresetChange(historyDatePresetFilter, historyCustomDateFilters, historyStartDateFilter, historyEndDateFilter, renderTable));
+                historyStartDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
+                historyEndDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
 
-                    if (preset === 'custom') {
-                        historyCustomDateFilters.classList.add('visible');
-                        return;
-                    }
-                    
-                    historyCustomDateFilters.classList.remove('visible');
+                recebiveisDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis));
+                recebiveisStartDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                recebiveisEndDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                
+                recebiveisPaymentDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis));
+                recebiveisPaymentStartDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                recebiveisPaymentEndDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
 
-                    switch(preset) {
-                        case 'today': break;
-                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
-                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
-                        case 'last_month':
-                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                            end = new Date(today.getFullYear(), today.getMonth(), 0);
-                            break;
-                        case 'last7days': start.setDate(today.getDate() - 6); break;
-                        case 'all_time': start = null; end = null; break;
-                    }
-                    
-                    historyStartDateFilter.value = start ? toISODateString(start) : '';
-                    historyEndDateFilter.value = end ? toISODateString(end) : '';
-                    renderTable();
-                };
+                userFilter.addEventListener('change', updateAllData);
+                channelFilterDash.addEventListener('change', updateAllData);
+                propostasCloserFilter.addEventListener('change', renderPropostas);
+                historyTypeFilter.addEventListener('change', renderTable);
+                recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
+                recebiveisStatusFilter.addEventListener('change', renderRecebiveis);
 
-                const handleDashboardDatePresetChange = () => {
-                    const preset = datePresetFilter.value;
-                    const today = new Date();
-                    let start = new Date();
-                    let end = new Date();
 
-                    if (preset === 'custom') {
-                        customDateFilters.classList.add('visible');
-                        return;
-                    }
-                    
-                    customDateFilters.classList.remove('visible');
-
-                    switch(preset) {
-                        case 'today': break;
-                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
-                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
-                        case 'last_month':
-                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                            end = new Date(today.getFullYear(), today.getMonth(), 0);
-                            break;
-                        case 'last7days': start.setDate(today.getDate() - 6); break;
-                        case 'all_time': start = null; end = null; break;
-                    }
-                    
-                    startDateFilter.value = start ? toISODateString(start) : '';
-                    endDateFilter.value = end ? toISODateString(end) : '';
-                    updateAllData();
-                };
-
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        contentSections.forEach(s => s.classList.remove('active'));
+                        const targetId = link.getAttribute('data-target');
+                        document.getElementById(targetId).classList.add('active');
+                        link.classList.add('active');
+                    });
+                });
+                
                 const populateCloserFilters = async () => {
                     const { data: profiles, error } = await supabaseClient.from('profiles').select('full_name');
                     
@@ -2044,57 +2027,13 @@
                     closerNameForm.disabled = true;
                 };
 
-                userFilter.addEventListener('change', updateAllData);
-                channelFilterDash.addEventListener('change', updateAllData);
-                datePresetFilter.addEventListener('change', handleDashboardDatePresetChange);
-                propostasCloserFilter.addEventListener('change', renderPropostas);
-                startDateFilter.addEventListener('change', () => {
-                    datePresetFilter.value = 'custom';
-                    customDateFilters.classList.add('visible');
-                    updateAllData();
-                });
-                endDateFilter.addEventListener('change', () => {
-                    datePresetFilter.value = 'custom';
-                    customDateFilters.classList.add('visible');
-                    updateAllData();
-                });
-
-                historyDatePresetFilter.addEventListener('change', handleHistoryDatePresetChange);
-                historyStartDateFilter.addEventListener('change', renderTable);
-                historyEndDateFilter.addEventListener('change', renderTable);
-                historyTypeFilter.addEventListener('change', renderTable);
-                
-                recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
-                recebiveisDatePresetFilter.addEventListener('change', handleRecebiveisDatePresetChange);
-                recebiveisStatusFilter.addEventListener('change', renderRecebiveis);
-                recebiveisStartDateFilter.addEventListener('change', () => {
-                    recebiveisDatePresetFilter.value = 'custom';
-                    recebiveisCustomDateFilters.classList.add('visible');
-                    renderRecebiveis();
-                });
-                recebiveisEndDateFilter.addEventListener('change', () => {
-                    recebiveisDatePresetFilter.value = 'custom';
-                    recebiveisCustomDateFilters.classList.add('visible');
-                    renderRecebiveis();
-                });
-
-
-                navLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        navLinks.forEach(l => l.classList.remove('active'));
-                        contentSections.forEach(s => s.classList.remove('active'));
-                        const targetId = link.getAttribute('data-target');
-                        document.getElementById(targetId).classList.add('active');
-                        link.classList.add('active');
-                    });
-                });
-                
                 // --- Inicialização ---
                 createLancamentoBlock();
                 await fetchActivities();
-                handleDashboardDatePresetChange();
-                handleRecebiveisDatePresetChange();
+                handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData);
+                handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis);
+                handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis);
+
             };
 
             // --- Lógica de Autenticação ---
