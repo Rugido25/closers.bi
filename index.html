@@ -546,7 +546,7 @@
                                 <option value="last7days">Últimos 7 dias</option>
                                 <option value="today">Hoje</option>
                                 <option value="yesterday">Ontem</option>
-                                <option value="this_month">Este Mês</option>
+                                <option value="this_month" selected>Este Mês</option>
                                 <option value="last_month">Mês Passado</option>
                                 <option value="all_time">Máximo</option>
                                 <option value="custom">Personalizado</option>
@@ -2084,8 +2084,9 @@
 
                 // --- Inicialização ---
                 createLancamentoBlock();
-                await fetchInitialData();
+                // Mova esta chamada para ANTES de buscar os dados para que o filtro inicial seja aplicado
                 handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, () => {});
+                await fetchInitialData();
             };
 
             // --- Lógica de Autenticação ---
@@ -2152,4 +2153,5 @@
     </script>
 </body>
 </html>
+
 
