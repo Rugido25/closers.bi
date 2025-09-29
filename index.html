@@ -286,7 +286,8 @@
 
         .kpi-large-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            justify-content: center;
             gap: 24px;
         }
 
@@ -323,10 +324,6 @@
         #kpi-valor-vendas-total {
              color: var(--highlight-pink);
         }
-        #kpi-valor-vendas-agencia, #kpi-valor-vendas-escola {
-             color: var(--highlight-pink);
-        }
-
 
         .widget { 
             background: var(--card-bg); 
@@ -540,7 +537,7 @@
                                 <option>Inbound</option>
                                 <option>Outbound</option>
                                 <option>Webinar</option>
-                                <option>Instagram</option>
+                                <option>Vanguarda</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -571,14 +568,6 @@
                 <div class="dashboard-grid">
                     <div class="kpi-large-grid">
                         <div class="kpi-card-large">
-                            <div class="title">Vendas Agência</div>
-                            <div class="value" id="kpi-valor-vendas-agencia">R$ 0,00</div>
-                        </div>
-                        <div class="kpi-card-large">
-                            <div class="title">Vendas Escola</div>
-                            <div class="value" id="kpi-valor-vendas-escola">R$ 0,00</div>
-                        </div>
-                        <div class="kpi-card-large">
                             <div class="title">Valor Total Vendido</div>
                             <div class="value" id="kpi-valor-vendas-total">R$ 0,00</div>
                         </div>
@@ -602,6 +591,10 @@
                     <div class="widget channel-widget">
                         <h3>Performance por Canal</h3>
                         <div class="channel-metrics-container" id="channel-metrics-container"></div>
+                        <!-- ÁREA DO GRÁFICO ADICIONADA -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                            <canvas id="channelSalesChart"></canvas>
+                        </div>
                     </div>
                     <div class="pipeline-widget-grid">
                         <div class="widget pipeline-widget">
@@ -615,16 +608,8 @@
                     </div>
                     <div class="ranking-grid">
                         <div class="widget ranking-widget">
-                            <h3>Ranking de Vendas - Geral</h3>
-                            <div id="ranking-container-geral"></div>
-                        </div>
-                        <div class="widget ranking-widget">
-                            <h3>Ranking de Vendas - Agência</h3>
-                            <div id="ranking-container-agencia"></div>
-                        </div>
-                        <div class="widget ranking-widget">
-                            <h3>Ranking de Vendas - Escola</h3>
-                            <div id="ranking-container-escola"></div>
+                            <h3>Ranking de Vendas</h3>
+                            <div id="ranking-container"></div>
                         </div>
                     </div>
                 </div>
@@ -829,13 +814,7 @@
                             <option>acima de 750k</option>
                         </select>
                     </div>
-                    <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Instagram</option></select></div>
-                     <div class="form-group"><label for="edit-sector">Setor</label>
-                        <select id="edit-sector">
-                            <option>Agência</option>
-                            <option>Escola</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label for="edit-channel">Canal</label><select id="edit-channel"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Vanguarda</option></select></div>
                     <div class="form-group"><label for="edit-qualification">Qualificação</label>
                         <select id="edit-qualification">
                             <option>Não Identificado</option>
@@ -928,6 +907,17 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMAÇÃO ADICIONADO -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <p id="confirm-message">Você tem certeza?</p>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                <button id="confirm-btn-yes" class="btn-ganha" style="padding: 10px 20px;">Sim</button>
+                <button id="confirm-btn-no" class="btn-perdida" style="padding: 10px 20px;">Não</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -965,6 +955,10 @@
                 const newTheme = isDarkMode ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
                 applyTheme(newTheme);
+                // RE-RENDERIZA O GRÁFICO COM AS CORES DO NOVO TEMA
+                if (document.querySelector('.content-section.active').id === 'dashboard') {
+                   updateAllPanels();
+                }
             });
             
             // Aplicar tema salvo no carregamento da página
@@ -982,8 +976,11 @@
                 const userName = profile?.full_name || user.email;
                 const userId = user.id;
 
-                let activities = [];
-                let payments = [];
+                // Variáveis globais para armazenar os dados carregados
+                let allActivities = [];
+                let allPayments = [];
+                // Variável para o gráfico
+                let channelSalesChart = null;
 
                 // --- Seletores de Elementos da Aplicação ---
                 const navLinks = document.querySelectorAll('.nav-link');
@@ -1036,7 +1033,12 @@
                 const paymentModalKpis = document.getElementById('payment-modal-kpis');
                 const paymentsListContainer = document.getElementById('payments-list-container');
                 const paymentActivityIdInput = document.getElementById('payment-activity-id');
-
+                // NOVOS SELETORES PARA MODAL DE CONFIRMAÇÃO E ÍCONE DE PERFIL
+                const confirmModal = document.getElementById('confirm-modal');
+                const confirmMessage = document.getElementById('confirm-message');
+                const confirmBtnYes = document.getElementById('confirm-btn-yes');
+                const confirmBtnNo = document.getElementById('confirm-btn-no');
+                const profileIcon = document.querySelector('.profile-icon');
 
                 userDisplayName.textContent = userName;
 
@@ -1062,9 +1064,29 @@
 
                 notificationCloseBtn.addEventListener('click', closeNotification);
                 notificationModal.addEventListener('click', (e) => {
-                    if (e.target === notificationModal) {
-                        closeNotification();
-                    }
+                    if (e.target === notificationModal) closeNotification();
+                });
+                
+                // NOVA FUNÇÃO PARA MODAL DE CONFIRMAÇÃO
+                const showConfirm = (message) => {
+                    return new Promise((resolve) => {
+                        confirmMessage.textContent = message;
+                        confirmModal.classList.add('visible');
+
+                        confirmBtnYes.onclick = () => {
+                            confirmModal.classList.remove('visible');
+                            resolve(true);
+                        };
+                        confirmBtnNo.onclick = () => {
+                            confirmModal.classList.remove('visible');
+                            resolve(false);
+                        };
+                    });
+                };
+                
+                // ADICIONADO EVENTO PARA ÍCONE DE PERFIL
+                profileIcon.addEventListener('click', () => {
+                    showNotification(`Olá, ${userName}! Funcionalidades de perfil em breve.`, 'info');
                 });
 
                 const toISODateString = (date) => {
@@ -1072,12 +1094,8 @@
                     const d = new Date(date);
                      // Adjust for timezone offset
                     const timezoneOffset = d.getTimezoneOffset() * 60000;
-                    const adjustedDate = new Date(d.getTime() + timezoneOffset);
-
-                    const year = adjustedDate.getFullYear();
-                    const month = String(adjustedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(adjustedDate.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
+                    const adjustedDate = new Date(d.getTime() - timezoneOffset);
+                    return adjustedDate.toISOString().split('T')[0];
                 };
                 
                 const formatCurrency = (value) => {
@@ -1130,13 +1148,7 @@
                                     <option>acima de 750k</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Instagram</option></select></div>
-                             <div class="form-group"><label for="sector-${blockId}">Setor</label>
-                                <select id="sector-${blockId}">
-                                    <option>Agência</option>
-                                    <option>Escola</option>
-                                </select>
-                            </div>
+                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Vanguarda</option></select></div>
                             <div class="form-group"><label for="qualification-${blockId}">Qualificação</label>
                                 <select id="qualification-${blockId}">
                                     <option>Não Identificado</option>
@@ -1186,16 +1198,16 @@
                         const currentStage = meetingType;
                         
                         const myLeadsInPreviousStage = new Set(
-                            activities
+                            allActivities
                                 .filter(act => act.closer_id === userId && act.type === previousStage)
                                 .map(act => act.lead)
                         );
                         
                         const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
-                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
-                            const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
+                            const hasAdvanced = allActivities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
+                            const isClosed = allActivities.some(a => a.lead === lead && a.deal_outcome);
 
-                            const previousStageActivities = activities
+                            const previousStageActivities = allActivities
                                 .filter(a => a.lead === lead && a.type === previousStage)
                                 .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -1203,7 +1215,7 @@
                             if (previousStageActivities.length > 0) {
                                 const latestMeeting = previousStageActivities[0];
                                 if (latestMeeting.status === 'No Show') {
-                                    const wasRescued = activities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
+                                    const wasRescued = allActivities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
                                     if (!wasRescued) {
                                         isBlockedByNoShow = true;
                                     }
@@ -1228,7 +1240,7 @@
                             const selectedLeadName = newLeadSelect.value;
                             if (!selectedLeadName) return;
 
-                            const previousActivity = activities
+                            const previousActivity = allActivities
                                 .filter(act => act.lead === selectedLeadName && act.type === previousStage)
                                 .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
@@ -1238,7 +1250,6 @@
                                 document.getElementById(`channel-${blockId}`).value = previousActivity.channel || 'Inbound';
                                 document.getElementById(`qualification-${blockId}`).value = previousActivity.qualification || 'Qualificado';
                                 document.getElementById(`reuniao-resgatada-${blockId}`).value = previousActivity.reuniao_resgatada || 'Não';
-                                document.getElementById(`sector-${blockId}`).value = previousActivity.sector || 'Agência';
                             }
                         });
 
@@ -1259,100 +1270,77 @@
                 });
                 
                 // --- Funções de Dados (Fetch, Filter, Update) ---
-                async function fetchAllData() {
+                const fetchFilteredActivities = async (source) => {
+                    let query = supabaseClient.from('activities').select('*');
+                    
+                    let startDate, endDate;
+
+                    if (source === 'dashboard') {
+                        const selectedUser = userFilter.value;
+                        const selectedChannel = channelFilterDash.value;
+                        startDate = startDateFilter.value;
+                        endDate = endDateFilter.value;
+
+                        if (selectedUser !== 'all') query = query.eq('closer', selectedUser);
+                        if (selectedChannel !== 'all') query = query.eq('channel', selectedChannel);
+
+                    } else if (source === 'history') {
+                        startDate = historyStartDateFilter.value;
+                        endDate = historyEndDateFilter.value;
+                        
+                        const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
+                        if(selectedTypes.length > 0) query = query.in('type', selectedTypes);
+                    }
+                    
+                    if (startDate) query = query.gte('date', startDate);
+                    if (endDate) query = query.lte('date', endDate);
+                    
+                    const { data, error } = await query;
+                    
+                    if (error) {
+                        console.error(`Erro ao buscar dados para ${source}:`, error);
+                        showNotification('Falha ao carregar dados do banco.', 'error');
+                        return [];
+                    }
+                    return data;
+                };
+
+                async function fetchInitialData() {
                     const [activitiesRes, paymentsRes] = await Promise.all([
                         supabaseClient.from('activities').select('*'),
                         supabaseClient.from('payments').select('*')
                     ]);
 
-                    if (activitiesRes.error) {
-                        console.error('Erro ao buscar atividades:', activitiesRes.error);
+                    if (activitiesRes.error || paymentsRes.error) {
+                        console.error('Erro ao buscar dados iniciais:', activitiesRes.error || paymentsRes.error);
                         showNotification('Não foi possível carregar os dados do banco.', 'error');
                         return;
                     }
-                    if (paymentsRes.error) {
-                        console.error('Erro ao buscar pagamentos:', paymentsRes.error);
-                        showNotification('Não foi possível carregar os dados de pagamentos.', 'error');
-                        return;
-                    }
-                    activities = activitiesRes.data;
-                    payments = paymentsRes.data;
+                    allActivities = activitiesRes.data;
+                    allPayments = paymentsRes.data;
                     
                     await populateCloserFilters();
-                    updateAllData();
+                    await updateAllPanels();
                 }
-
-                const filterActivities = (source) => {
-                    let filtered = [...activities];
+                
+                const updateAllPanels = async () => {
+                    const dashboardData = await fetchFilteredActivities('dashboard');
+                    updateDashboard(dashboardData);
+                    updateRanking(dashboardData);
+                    updatePipelineWidgets(dashboardData);
+                    updateChannelMetrics(dashboardData);
+                    updateChannelChart(dashboardData);
                     
-                    if (source === 'dashboard') {
-                        const selectedUser = userFilter.value;
-                        const selectedChannel = channelFilterDash.value;
-                        const startDate = startDateFilter.value ? new Date(startDateFilter.value + 'T00:00:00') : null;
-                        const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
-
-                        filtered = activities.filter(act => {
-                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
-                            const userMatch = selectedUser === 'all' || act.closer === selectedUser;
-                            const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
-                            const startDateMatch = !startDate || activityDate >= startDate;
-                            const endDateMatch = !endDate || activityDate <= endDate;
-                            return userMatch && channelMatch && startDateMatch && endDateMatch;
-                        });
-                    } else if (source === 'history') {
-                        const filters = {};
-                        document.querySelectorAll('#history-table-container .history-filter').forEach(f => { filters[f.dataset.key] = f.value; });
-                        
-                        const startDate = historyStartDateFilter.value ? new Date(historyStartDateFilter.value + 'T00:00:00') : null;
-                        const endDate = historyEndDateFilter.value ? new Date(historyEndDateFilter.value + 'T23:59:59') : null;
-                        
-                        const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
-
-                        const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome', 'sector'];
-                        
-                        filtered = activities.filter(act => {
-                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
-                            const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
-                            if (!dateMatch) return false;
-
-                            const typeMatch = (selectedTypes.length === 0 ? true : selectedTypes.includes(act.type)) || act.deal_outcome;
-                            if (!typeMatch) return false;
-
-                            return Object.entries(filters).every(([key, value]) => {
-                                if (!value || value === 'Todos') return true;
-                                if (selectFilterKeys.includes(key)) {
-                                    return String(act[key]) === value;
-                                }
-                                return String(act[key]).toLowerCase().includes(value.toLowerCase());
-                            });
-                        });
-                    }
-                    return filtered;
-                };
-
-                const updateAllData = () => {
-                    const filteredData = filterActivities('dashboard');
-                    updateDashboard(filteredData);
-                    updateRanking(filteredData);
-                    updatePipelineWidgets(filteredData);
-                    updateChannelMetrics(filteredData);
-                    renderPropostas();
-                    renderTable(); // Histórico
-                    renderRecebiveis(); // Recebíveis
+                    await renderPropostas();
+                    await renderTable();
+                    await renderRecebiveis();
                 };
 
                 // --- Funções de Renderização do Dashboard ---
                 const updateDashboard = (data) => {
                     const vendas = data.filter(act => act.deal_outcome === 'Ganha');
-                    const vendasAgencia = vendas.filter(v => v.sector === 'Agência');
-                    const vendasEscola = vendas.filter(v => v.sector === 'Escola');
-
-                    const receitaAgencia = vendasAgencia.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                    const receitaEscola = vendasEscola.reduce((sum, act) => sum + (act.sale_value || 0), 0);
-                    const receitaTotal = receitaAgencia + receitaEscola;
-
-                    document.getElementById('kpi-valor-vendas-agencia').textContent = formatCurrency(receitaAgencia);
-                    document.getElementById('kpi-valor-vendas-escola').textContent = formatCurrency(receitaEscola);
+                    const receitaTotal = vendas.reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                    
                     document.getElementById('kpi-valor-vendas-total').textContent = formatCurrency(receitaTotal);
                     
                     document.getElementById('kpi-vendas').textContent = vendas.length;
@@ -1367,20 +1355,73 @@
                     document.getElementById('kpi-desqualificadas').textContent = data.filter(act => act.qualification === 'Não Qualificado').length;
                     document.getElementById('kpi-reagendadas').textContent = data.filter(act => act.status === 'Reunião Reagendada').length;
                     document.getElementById('kpi-no-show').textContent = data.filter(act => act.status === 'No Show').length;
-                    const leadsComProposta = new Set(data.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
-                    const leadsFechados = new Set(data.filter(act => act.deal_outcome).map(act => act.lead));
+                    
+                    const leadsComProposta = new Set(allActivities.filter(act => act.proposal_sent === 'Sim').map(act => act.lead));
+                    const leadsFechados = new Set(allActivities.filter(act => act.deal_outcome).map(act => act.lead));
                     const leadsAbertosComProposta = [...leadsComProposta].filter(lead => !leadsFechados.has(lead));
                     let valorPropostasAbertas = 0;
                     leadsAbertosComProposta.forEach(lead => {
-                        const propostasDoLead = data.filter(act => act.lead === lead && act.proposal_value > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
+                        const propostasDoLead = allActivities.filter(act => act.lead === lead && act.proposal_value > 0).sort((a, b) => new Date(b.date) - new Date(a.date));
                         if (propostasDoLead.length > 0) { valorPropostasAbertas += propostasDoLead[0].proposal_value; }
                     });
                     document.getElementById('kpi-propostas-aberto').innerHTML = formatCurrency(valorPropostasAbertas);
                 };
                 
+                const updateChannelChart = (data) => {
+                    const ctx = document.getElementById('channelSalesChart').getContext('2d');
+                    const channels = ['Inbound', 'Outbound', 'Webinar', 'Vanguarda'];
+                    
+                    const salesByChannel = channels.map(channel => {
+                        return data
+                            .filter(act => act.channel === channel && act.deal_outcome === 'Ganha')
+                            .reduce((sum, act) => sum + (act.sale_value || 0), 0);
+                    });
+
+                    const isDarkMode = document.body.classList.contains('dark-mode');
+                    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                    const labelColor = isDarkMode ? '#F7FAFC' : '#2D3748';
+
+                    if (channelSalesChart) {
+                        channelSalesChart.destroy();
+                    }
+
+                    channelSalesChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: channels,
+                            datasets: [{
+                                label: 'Valor Total Vendido por Canal',
+                                data: salesByChannel,
+                                backgroundColor: [
+                                    'rgba(229, 62, 117, 0.7)',
+                                    'rgba(72, 187, 120, 0.7)',
+                                    'rgba(26, 44, 80, 0.7)',
+                                    'rgba(113, 128, 150, 0.7)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: labelColor,
+                                        callback: (value) => `R$ ${(value / 1000)}k`
+                                    },
+                                    grid: { color: gridColor }
+                                },
+                                x: { ticks: { color: labelColor }, grid: { color: gridColor } }
+                            }
+                        }
+                    });
+                };
+                
                 const updateChannelMetrics = (data) => {
                     const container = document.getElementById('channel-metrics-container');
-                    const channels = ['Inbound', 'Outbound', 'Webinar', 'Instagram'];
+                    const channels = ['Inbound', 'Outbound', 'Webinar', 'Vanguarda'];
                     let html = '';
                     channels.forEach(channel => {
                         const channelData = data.filter(act => act.channel === channel);
@@ -1442,19 +1483,7 @@
                 };
 
                 const updateRanking = (data) => {
-                    const renderRanking = (container, rankingData) => {
-                        let rankingHTML = '';
-                        if (rankingData.length === 0) {
-                            rankingHTML = '<p>Nenhuma venda registrada no período.</p>';
-                        } else {
-                            rankingData.forEach((closer, index) => {
-                                const initials = closer.name.split(' ').map(n => n[0]).join('');
-                                rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
-                            });
-                        }
-                        container.innerHTML = rankingHTML;
-                    };
-
+                    const container = document.getElementById('ranking-container');
                     const calculateRanking = (filteredData) => {
                         const salesByCloser = filteredData.filter(act => act.deal_outcome === 'Ganha').reduce((acc, act) => {
                             if (!acc[act.closer]) { acc[act.closer] = { total: 0, count: 0 }; }
@@ -1465,26 +1494,29 @@
                         return Object.entries(salesByCloser).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.total - a.total);
                     };
 
-                    // Geral
-                    renderRanking(document.getElementById('ranking-container-geral'), calculateRanking(data));
-                    // Agência
-                    renderRanking(document.getElementById('ranking-container-agencia'), calculateRanking(data.filter(d => d.sector === 'Agência')));
-                    // Escola
-                    renderRanking(document.getElementById('ranking-container-escola'), calculateRanking(data.filter(d => d.sector === 'Escola')));
+                    const rankingData = calculateRanking(data);
+                    let rankingHTML = '';
+                    if (rankingData.length === 0) {
+                        rankingHTML = '<p>Nenhuma venda registrada no período.</p>';
+                    } else {
+                        rankingData.forEach((closer, index) => {
+                            const initials = closer.name.split(' ').map(n => n[0]).join('');
+                            rankingHTML += `<div class="ranking-item"><div class="rank">#${index+1}</div><div class="avatar">${initials}</div><div class="info"><div class="name">${closer.name}</div><div class="details">${closer.count} vendas</div></div><div class="value">${formatCurrency(closer.total)}</div></div>`;
+                        });
+                    }
+                    container.innerHTML = rankingHTML;
                 };
 
                 // --- Lógica da Tabela de Histórico e Edição ---
-                const renderTable = () => {
-                    const tableBody = document.querySelector('#history-table-container table tbody');
-                    if (!tableBody) {
+                const renderTable = async () => {
+                    if (!document.querySelector('#history-table-container table')) {
                         historyContainer.innerHTML = `
                             <table>
                                 <thead>
-                                    <tr><th>Data</th><th>Closer</th><th>Setor</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Resultado</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th><th>Ações</th></tr>
-                                    <tr class="table-filters">
+                                    <tr><th>Data</th><th>Closer</th><th>BDR</th><th>Lead</th><th>Canal</th><th>Faturamento</th><th>Qualificação</th><th>Status</th><th>Reunião Resgatada</th><th>Resultado</th><th>Vlr. Proposta</th><th>Vlr. Venda</th><th>Notas</th><th>Ações</th></tr>
+                                    <tr class="table-filters no-hover">
                                         <td></td>
                                         <td><select class="history-filter" data-key="closer"></select></td>
-                                        <td><select class="history-filter" data-key="sector"><option value="">Todos</option><option>Agência</option><option>Escola</option></select></td>
                                         <td><input type="text" class="history-filter" data-key="bdr" placeholder="Filtrar..."></td>
                                         <td><input type="text" class="history-filter" data-key="lead" placeholder="Filtrar..."></td>
                                         <td><select class="history-filter" data-key="channel"></select></td>
@@ -1493,30 +1525,32 @@
                                         <td><select class="history-filter" data-key="status"></select></td>
                                         <td><select class="history-filter" data-key="reuniao_resgatada"><option value="">Todos</option><option>Sim</option><option>Não</option></select></td>
                                         <td><select class="history-filter" data-key="deal_outcome"><option value="">Todos</option><option>Ganha</option><option>Perdida</option></select></td>
-                                        <td></td>
-                                        <td></td>
+                                        <td></td><td></td>
                                         <td><input type="text" class="history-filter" data-key="notes" placeholder="Filtrar..."></td>
                                         <td></td>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
-                            </table>
-                        `;
-                        const getUniqueOptions = (key) => ['Todos', ...new Set(activities.map(act => act[key]).filter(Boolean))];
+                            </table>`;
                         
-                        document.querySelector('.table-filters [data-key="closer"]').innerHTML = getUniqueOptions('closer').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="channel"]').innerHTML = getUniqueOptions('channel').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="company_revenue"]').innerHTML = getUniqueOptions('company_revenue').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="qualification"]').innerHTML = getUniqueOptions('qualification').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
-                        document.querySelector('.table-filters [data-key="status"]').innerHTML = getUniqueOptions('status').map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        const getUniqueOptions = (key) => ['Todos', ...new Set(allActivities.map(act => act[key]).filter(Boolean))];
+                        const populateSelect = (selector, key) => {
+                            document.querySelector(selector).innerHTML = getUniqueOptions(key).map(opt => `<option value="${opt === 'Todos' ? '' : opt}">${opt}</option>`).join('');
+                        };
 
-                        document.querySelectorAll('#history-table-container .table-filters').forEach(row => {
-                            row.addEventListener('input', renderTable);
+                        populateSelect('.table-filters [data-key="closer"]', 'closer');
+                        populateSelect('.table-filters [data-key="channel"]', 'channel');
+                        populateSelect('.table-filters [data-key="company_revenue"]', 'company_revenue');
+                        populateSelect('.table-filters [data-key="qualification"]', 'qualification');
+                        populateSelect('.table-filters [data-key="status"]', 'status');
+
+                        document.querySelectorAll('.history-filter').forEach(filter => {
+                            filter.addEventListener('input', renderTable);
                         });
                     }
 
-                    const filteredActivities = filterActivities('history');
-
+                    const filteredActivities = await fetchFilteredActivities('history');
+                    
                     const finalTableBody = document.querySelector('#history-table-container table tbody');
                     finalTableBody.innerHTML = '';
                     filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
@@ -1524,57 +1558,35 @@
                         row.dataset.id = act.id;
                         
                         const isOwner = act.closer_id === userId;
-                        const leadHasNoShow = activities.some(a => a.lead === act.lead && a.status === 'No Show');
-                        const dealIsClosed = activities.some(a => a.lead === act.lead && a.deal_outcome);
+                        const leadHasNoShow = allActivities.some(a => a.lead === act.lead && a.status === 'No Show');
+                        const dealIsClosed = allActivities.some(a => a.lead === act.lead && a.deal_outcome);
                         let actionsHTML = '';
 
                         if (isOwner && !dealIsClosed && !leadHasNoShow) {
-                            const hasR2 = activities.some(a => a.lead === act.lead && a.type === 'R2');
-                            const hasR3 = activities.some(a => a.lead === act.lead && a.type === 'R3');
-                            const hasR4 = activities.some(a => a.lead === act.lead && a.type === 'R4');
-                            const hasR5 = activities.some(a => a.lead === act.lead && a.type === 'R5');
-
-                            if (act.type === 'R1' && ![hasR2, hasR3, hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar R1</button>`;
-                            } else if (act.type === 'R2' && ![hasR3, hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
-                            } else if (act.type === 'R3' && ![hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
-                            } else if (act.type === 'R4' && !hasR5) {
+                            const hasHigherStage = allActivities.some(a => {
+                                if (a.lead !== act.lead || !a.type.startsWith('R') || !act.type.startsWith('R')) return false;
+                                return parseInt(a.type.substring(1)) > parseInt(act.type.substring(1));
+                            });
+                            if (!hasHigherStage) {
                                 actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
                             }
                         }
 
                         const notes = act.notes || '';
                         const maxLength = 50;
-                        let notesHTML = '';
-
-                        if (notes.length > maxLength) {
-                            notesHTML = `
-                                <span class="notes-text-truncated">${notes.substring(0, maxLength)}...</span>
-                                <span class="notes-text-full">${notes}</span>
-                                <button class="toggle-notes-btn">Ver mais</button>
-                            `;
-                        } else {
-                            notesHTML = notes;
-                        }
+                        let notesHTML = notes.length > maxLength 
+                            ? `<span class="notes-text-truncated">${notes.substring(0, maxLength)}...</span><span class="notes-text-full">${notes}</span><button class="toggle-notes-btn">Ver mais</button>` 
+                            : notes;
                         
                         const displayDate = act.sale_date || act.date;
-                        row.innerHTML = `<td>${new Date(displayDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.sector || 'N/A'}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
+                        row.innerHTML = `<td>${new Date(displayDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${act.closer}</td><td>${act.bdr || 'N/A'}</td><td>${act.lead}</td><td>${act.channel}</td><td>${act.company_revenue || 'N/A'}</td><td>${act.qualification}</td><td>${act.status}</td><td>${act.reuniao_resgatada || 'Não'}</td><td>${act.deal_outcome || '-'}</td><td>${act.proposal_value ? formatCurrency(act.proposal_value) : 'N/A'}</td><td>${act.sale_value ? formatCurrency(act.sale_value) : 'N/A'}</td><td class="notes-cell">${notesHTML}</td><td>${actionsHTML}</td>`;
                         
                         finalTableBody.appendChild(row);
                     });
                 };
                 
                 clearHistoryFiltersBtn.addEventListener('click', () => {
-                    const filters = document.querySelectorAll('#history-table-container .history-filter');
-                    filters.forEach(filter => {
-                        if (filter.tagName.toLowerCase() === 'select') {
-                            filter.selectedIndex = 0;
-                        } else {
-                            filter.value = '';
-                        }
-                    });
+                    document.querySelectorAll('.history-filter').forEach(filter => filter.tagName.toLowerCase() === 'select' ? filter.selectedIndex = 0 : filter.value = '');
                     historyDatePresetFilter.value = 'all_time';
                     historyStartDateFilter.value = '';
                     historyEndDateFilter.value = '';
@@ -1592,14 +1604,10 @@
 
                     lancamentoBlocks.forEach(block => {
                         const blockId = block.id;
-                        document.getElementById(`lead-name-${blockId}`).style.borderColor = '';
-                        document.getElementById(`activity-type-${blockId}`).style.borderColor = '';
-                    });
-
-                    lancamentoBlocks.forEach(block => {
-                        const blockId = block.id;
                         const leadNameInput = document.getElementById(`lead-name-${blockId}`);
                         const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
+                        leadNameInput.style.borderColor = '';
+                        activityTypeSelect.style.borderColor = '';
 
                         if (!leadNameInput.value.trim()) {
                             leadNameInput.style.borderColor = 'var(--error-color)';
@@ -1611,12 +1619,12 @@
                         }
 
                         if (formIsValid) {
-                            const newActivity = {
+                            newActivitiesPayload.push({
                                 ...headerData, 
                                 lead: leadNameInput.value.trim(), 
                                 bdr: document.getElementById(`bdr-${blockId}`).value,
                                 channel: document.getElementById(`channel-${blockId}`).value, 
-                                sector: document.getElementById(`sector-${blockId}`).value,
+                                sector: 'Agência', // Hardcoded as there's only one option now
                                 type: activityTypeSelect.value, 
                                 status: document.getElementById(`activity-status-${blockId}`).value, 
                                 evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
@@ -1626,18 +1634,17 @@
                                 company_revenue: document.getElementById(`revenue-${blockId}`).value,
                                 proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
                                 reuniao_resgatada: document.getElementById(`reuniao-resgatada-${blockId}`).value,
-                            };
-                            newActivitiesPayload.push(newActivity);
+                            });
                         }
                     });
 
                     if (!formIsValid) {
-                        showNotification('Por favor, preencha os campos obrigatórios (Lead e Tipo de Reunião) em todos os lançamentos.', 'error');
+                        showNotification('Por favor, preencha os campos obrigatórios (Lead e Tipo de Reunião).', 'error');
                         return;
                     }
 
                     if (lancamentoBlocks.length === 0) {
-                        showNotification('Adicione pelo menos um lançamento antes de salvar.', 'error');
+                        showNotification('Adicione pelo menos um lançamento.', 'error');
                         return;
                     }
                     
@@ -1645,17 +1652,17 @@
 
                     if (error) {
                         console.error('Erro ao salvar:', error);
-                        showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
+                        showNotification(`Falha ao salvar: ${error.message}`, 'error');
                     } else {
-                        showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
+                        showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s)!`, 'success');
                         lancamentosContainer.innerHTML = '';
                         createLancamentoBlock();
-                        await fetchAllData();
+                        await fetchInitialData(); // Recarrega todos os dados
                     }
                 });
 
                 const openEditModal = (activityId) => {
-                    const activity = activities.find(act => act.id == activityId);
+                    const activity = allActivities.find(act => act.id == activityId);
                     if (!activity) return;
                     document.getElementById('edit-activity-id').value = activity.id;
                     document.getElementById('edit-date').value = activity.date;
@@ -1663,7 +1670,6 @@
                     document.getElementById('edit-bdr').value = activity.bdr;
                     document.getElementById('edit-revenue').value = activity.company_revenue;
                     document.getElementById('edit-channel').value = activity.channel;
-                    document.getElementById('edit-sector').value = activity.sector || 'Agência';
                     document.getElementById('edit-qualification').value = activity.qualification;
                     document.getElementById('edit-activity-type').value = activity.type;
                     document.getElementById('edit-activity-status').value = activity.status;
@@ -1683,16 +1689,13 @@
                     const target = e.target;
                     
                     if (target.classList.contains('toggle-notes-btn')) {
-                        e.preventDefault();
                         const cell = target.closest('td');
                         const truncated = cell.querySelector('.notes-text-truncated');
                         const full = cell.querySelector('.notes-text-full');
-                        
-                        const isCurrentlyExpanded = full.style.display === 'block';
-                        
-                        full.style.display = isCurrentlyExpanded ? 'none' : 'block';
-                        truncated.style.display = isCurrentlyExpanded ? 'block' : 'none';
-                        target.textContent = isCurrentlyExpanded ? 'Ver mais' : 'Ver menos';
+                        const isExpanded = full.style.display === 'block';
+                        full.style.display = isExpanded ? 'none' : 'block';
+                        truncated.style.display = isExpanded ? 'block' : 'none';
+                        target.textContent = isExpanded ? 'Ver mais' : 'Ver menos';
                         return;
                     }
                     
@@ -1704,22 +1707,17 @@
 
                     if (target.classList.contains('end-deal-btn')) {
                         const leadName = target.dataset.lead;
-                        const leadActivities = activities
-                            .filter(act => act.lead === leadName)
-                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                        const leadActivities = allActivities.filter(act => act.lead === leadName).sort((a, b) => new Date(b.date) - new Date(a.date));
                         
                         if (leadActivities.length > 0) {
                             const latestActivity = leadActivities[0];
-                            const { error } = await supabaseClient
-                                .from('activities')
-                                .update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) })
-                                .eq('id', latestActivity.id);
+                            const { error } = await supabaseClient.from('activities').update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) }).eq('id', latestActivity.id);
 
                             if (error) {
-                                showNotification(`Falha ao finalizar a negociação: ${error.message}`, 'error');
+                                showNotification(`Falha ao finalizar: ${error.message}`, 'error');
                             } else {
                                 showNotification(`Negociação com ${leadName} foi finalizada.`, 'success');
-                                await fetchAllData();
+                                await fetchInitialData();
                             }
                         }
                     }
@@ -1727,9 +1725,7 @@
 
                 modalCloseBtn.addEventListener('click', closeEditModal);
                 editModal.addEventListener('click', (e) => {
-                    if (e.target === editModal) {
-                        closeEditModal();
-                    }
+                    if (e.target === editModal) closeEditModal();
                 });
 
                 editForm.addEventListener('submit', async (e) => {
@@ -1737,27 +1733,19 @@
                     const id = document.getElementById('edit-activity-id').value;
                     
                     if (!id) {
-                        showNotification('ERRO: ID da atividade não encontrado. Não foi possível salvar.', 'error');
+                        showNotification('ERRO: ID da atividade não encontrado.', 'error');
                         return;
                     }
-
-                    const activityTypeSelect = document.getElementById('edit-activity-type');
-                    if (!activityTypeSelect.value) {
-                        showNotification('O campo "Tipo de Reunião" é obrigatório.', 'error');
-                        activityTypeSelect.style.borderColor = 'var(--error-color)';
-                        return;
-                    }
-                    activityTypeSelect.style.borderColor = '';
-
+                    
                     const updatedData = {
                         date: document.getElementById('edit-date').value,
                         lead: document.getElementById('edit-lead-name').value,
                         bdr: document.getElementById('edit-bdr').value,
                         company_revenue: document.getElementById('edit-revenue').value,
                         channel: document.getElementById('edit-channel').value,
-                        sector: document.getElementById('edit-sector').value,
+                        sector: 'Agência', // Hardcoded
                         qualification: document.getElementById('edit-qualification').value,
-                        type: activityTypeSelect.value,
+                        type: document.getElementById('edit-activity-type').value,
                         status: document.getElementById('edit-activity-status').value,
                         proposal_sent: document.getElementById('edit-proposal-sent').value,
                         reuniao_resgatada: document.getElementById('edit-reuniao-resgatada').value,
@@ -1769,62 +1757,71 @@
                     const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
 
                     if (error) {
-                        console.error('Erro ao atualizar:', error);
-                        showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error');
+                        showNotification(`Falha ao salvar: ${error.message}`, 'error');
                     } else {
-                        showNotification('Alterações salvas com sucesso!', 'success');
+                        showNotification('Alterações salvas!', 'success');
                         closeEditModal();
-                        await fetchAllData();
+                        await fetchInitialData();
                     }
                 });
                 
                 // --- Lógica da Seção de Propostas ---
-                const renderPropostas = () => {
+                const renderPropostas = async () => {
                     propostasContainer.innerHTML = '';
                     const selectedCloser = propostasCloserFilter.value;
-                    const dataToFilter = (selectedCloser === 'all') ? activities : activities.filter(act => act.closer === selectedCloser);
-                    const leadsComProposta = new Set(dataToFilter.filter(act => act.proposal_sent === 'Sim' && !act.deal_outcome).map(act => act.lead));
 
-                    if (leadsComProposta.size === 0) {
+                    // Busca propostas em aberto direto do Supabase
+                    let query = supabaseClient.from('activities')
+                        .select('*')
+                        .eq('proposal_sent', 'Sim')
+                        .is('deal_outcome', null);
+                    
+                    if (selectedCloser !== 'all') {
+                        query = query.eq('closer', selectedCloser);
+                    }
+                    
+                    const { data: openProposals, error } = await query;
+                    
+                    if(error) {
+                        console.error("Erro ao buscar propostas:", error);
+                        return;
+                    }
+                    
+                    // Agrupa por lead para mostrar apenas a última proposta
+                    const proposalsByLead = openProposals.reduce((acc, proposal) => {
+                        if (!acc[proposal.lead] || new Date(proposal.date) > new Date(acc[proposal.lead].date)) {
+                            acc[proposal.lead] = proposal;
+                        }
+                        return acc;
+                    }, {});
+
+                    const latestProposals = Object.values(proposalsByLead);
+
+                    if (latestProposals.length === 0) {
                         propostasContainer.innerHTML = '<p>Nenhuma proposta em aberto para o filtro selecionado.</p>';
                         return;
                     }
 
-                    leadsComProposta.forEach(lead => {
-                        const propostasDoLead = dataToFilter
-                            .filter(act => act.lead === lead && act.proposal_sent === 'Sim')
-                            .sort((a, b) => new Date(b.date) - new Date(a.date));
+                    latestProposals.forEach(proposal => {
+                        const card = document.createElement('div');
+                        card.className = 'proposal-card';
                         
-                        if (propostasDoLead.length > 0) {
-                            const ultimaProposta = propostasDoLead[0];
-                            const card = document.createElement('div');
-                            card.className = 'proposal-card';
-                            
-                            const isOwner = ultimaProposta.closer_id === userId;
-                            let actionsHTML = '';
-                            if (isOwner) {
-                                actionsHTML = `
-                                    <div class="proposal-actions">
-                                        <button class="btn-ganha" data-id="${ultimaProposta.id}" data-value="${ultimaProposta.proposal_value}">Marcar como Vendida</button>
-                                        <button class="btn-perdida" data-id="${ultimaProposta.id}">Marcar como Perdida</button>
-                                    </div>
-                                `;
-                            }
-                            
-                            const leadNameClass = isOwner ? 'lead-name editable' : 'lead-name';
-                            const leadNameDataId = isOwner ? `data-id="${ultimaProposta.id}"` : '';
-                            
-                            card.innerHTML = `
-                                <div class="proposal-info">
-                                    <div class="${leadNameClass}" ${leadNameDataId}>${ultimaProposta.lead}</div>
-                                    <div class="details">
-                                        Valor: ${formatCurrency(ultimaProposta.proposal_value)} | Closer: ${ultimaProposta.closer} | Data: ${new Date(ultimaProposta.date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                                    </div>
+                        const isOwner = proposal.closer_id === userId;
+                        const actionsHTML = isOwner ? `
+                            <div class="proposal-actions">
+                                <button class="btn-ganha" data-id="${proposal.id}" data-value="${proposal.proposal_value}">Marcar como Vendida</button>
+                                <button class="btn-perdida" data-id="${proposal.id}">Marcar como Perdida</button>
+                            </div>` : '';
+                        
+                        card.innerHTML = `
+                            <div class="proposal-info">
+                                <div class="${isOwner ? 'lead-name editable' : 'lead-name'}" data-id="${proposal.id}">${proposal.lead}</div>
+                                <div class="details">
+                                    Valor: ${formatCurrency(proposal.proposal_value)} | Closer: ${proposal.closer} | Data: ${new Date(proposal.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                                 </div>
-                                ${actionsHTML}
-                            `;
-                            propostasContainer.appendChild(card);
-                        }
+                            </div>
+                            ${actionsHTML}`;
+                        propostasContainer.appendChild(card);
                     });
                 };
 
@@ -1832,17 +1829,14 @@
                     const target = e.target;
                     
                     if (target.classList.contains('editable')) {
-                        const id = target.dataset.id;
-                        openEditModal(id);
+                        openEditModal(target.dataset.id);
                         return;
                     }
 
-                    const button = target.closest('button');
+                    const button = target.closest('button[data-id]');
                     if (!button) return;
 
                     const id = button.dataset.id;
-                    if (!id) return;
-
                     let updatedData = {};
                     const saleDate = toISODateString(new Date());
 
@@ -1857,166 +1851,101 @@
                     const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
 
                     if (error) {
-                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
+                        showNotification(`Falha ao atualizar: ${error.message}`, 'error');
                     } else {
-                        showNotification(`Proposta atualizada com sucesso!`, 'success');
-                        await fetchAllData();
+                        showNotification(`Proposta atualizada!`, 'success');
+                        await fetchInitialData(); // Recarrega tudo
                     }
                 });
 
                 // --- Lógica da Seção de Recebíveis ---
-                const renderRecebiveis = () => {
+                const renderRecebiveis = async () => {
                     const container = document.getElementById('recebiveis-table-container');
                     const selectedCloser = recebiveisCloserFilter.value;
                     const selectedStatus = recebiveisStatusFilter.value;
                     
-                    const saleStartDate = recebiveisStartDateFilter.value ? new Date(recebiveisStartDateFilter.value + 'T00:00:00') : null;
-                    const saleEndDate = recebiveisEndDateFilter.value ? new Date(recebiveisEndDateFilter.value + 'T23:59:59') : null;
-                    const paymentStartDate = recebiveisPaymentStartDateFilter.value ? new Date(recebiveisPaymentStartDateFilter.value + 'T00:00:00') : null;
-                    const paymentEndDate = recebiveisPaymentEndDateFilter.value ? new Date(recebiveisPaymentEndDateFilter.value + 'T23:59:59') : null;
-
-                    const sales = activities.filter(act => {
-                        const isSale = act.deal_outcome === 'Ganha';
-                        if (!isSale) return false;
-                        
-                        const closerMatch = selectedCloser === 'all' || act.closer === selectedCloser;
-                        
-                        let saleDateMatch = true;
-                         if (saleStartDate || saleEndDate) {
-                            if (!act.sale_date) {
-                                saleDateMatch = false; // Vendas sem data não aparecem em filtros de data específicos
-                            } else {
-                                const saleDateParts = act.sale_date.split('-');
-                                const saleDate = new Date(saleDateParts[0], saleDateParts[1] - 1, saleDateParts[2]);
-                                saleDateMatch = (!saleStartDate || saleDate >= saleStartDate) && (!saleEndDate || saleDate <= saleEndDate);
-                            }
-                        }
-
-                        const associatedPayments = payments.filter(p => p.activity_id === act.id);
-                        const paidValue = associatedPayments.reduce((sum, p) => sum + (p.valor_pago || 0), 0);
-                        const saleValue = act.sale_value || 0;
-                        const balance = saleValue - paidValue;
-
-                        let statusMatch = true;
-                        if (selectedStatus === 'paid') {
-                            statusMatch = balance <= 0;
-                        } else if (selectedStatus === 'not_paid') {
-                            statusMatch = balance > 0;
-                        }
-                        
-                        let paymentDateMatch = true;
-                        if (paymentStartDate || paymentEndDate) {
-                            paymentDateMatch = associatedPayments.some(p => {
-                                if(!p.data_pagamento) return false;
-                                const paymentDateParts = p.data_pagamento.split('-');
-                                const paymentDate = new Date(paymentDateParts[0], paymentDateParts[1] - 1, paymentDateParts[2]);
-                                const paymentStartDateMatch = !paymentStartDate || paymentDate >= paymentStartDate;
-                                const paymentEndDateMatch = !paymentEndDate || paymentDate <= paymentEndDate;
-                                return paymentStartDateMatch && paymentEndDateMatch;
-                            });
-                        }
-
-                        return closerMatch && saleDateMatch && statusMatch && paymentDateMatch;
-                    });
+                    const saleStartDate = recebiveisStartDateFilter.value;
+                    const saleEndDate = recebiveisEndDateFilter.value;
+                    const paymentStartDate = recebiveisPaymentStartDateFilter.value;
+                    const paymentEndDate = recebiveisPaymentEndDateFilter.value;
                     
-                    const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
-                    const totalRecebido = sales.reduce((sum, sale) => {
-                        const paidValue = payments
-                            .filter(p => p.activity_id === sale.id)
-                            .reduce((paymentSum, p) => paymentSum + (p.valor_pago || 0), 0);
-                        return sum + paidValue;
-                    }, 0);
-                    const saldoPendente = totalVendido - totalRecebido;
+                    let query = supabaseClient.from('activities').select('*').eq('deal_outcome', 'Ganha');
+                    if (selectedCloser !== 'all') query = query.eq('closer', selectedCloser);
+                    if (saleStartDate) query = query.gte('sale_date', saleStartDate);
+                    if (saleEndDate) query = query.lte('sale_date', saleEndDate);
 
-                    document.getElementById('recebiveis-total-vendido').textContent = formatCurrency(totalVendido);
-                    document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebido);
-                    document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(saldoPendente);
-                    
-                    let tableHTML = `
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Data Venda</th>
-                                    <th>Closer</th>
-                                    <th>Lead</th>
-                                    <th>Valor Venda</th>
-                                    <th>Valor Recebido</th>
-                                    <th>Saldo Devedor</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
+                    const { data: sales, error } = await query;
+                    if(error){ console.error("Erro ao buscar vendas:", error); return; }
 
-                    if (sales.length === 0) {
-                        tableHTML += `<tr><td colspan="7" style="text-align: center;">Nenhuma venda encontrada para os filtros selecionados.</td></tr>`;
-                    } else {
-                         sales.sort((a, b) => {
-                            if (!a.sale_date) return 1;
-                            if (!b.sale_date) return -1;
-                            return new Date(b.sale_date) - new Date(a.sale_date);
-                        }).forEach(sale => {
-                            const saleValue = sale.sale_value || 0;
-                            const paidValue = payments.filter(p => p.activity_id === sale.id).reduce((sum,p) => sum + (p.valor_pago || 0), 0);
-                            const balance = saleValue - paidValue;
-                            const status = balance <= 0 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
-                           
-                            tableHTML += `
-                                <tr class="recebiveis-row" data-id="${sale.id}">
-                                    <td>${sale.sale_date ? new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
-                                    <td>${sale.closer}</td>
-                                    <td>${sale.lead}</td>
-                                    <td>${formatCurrency(saleValue)}</td>
-                                    <td>${formatCurrency(paidValue)}</td>
-                                    <td>${formatCurrency(balance)}</td>
-                                    <td>${status}</td>
-                                </tr>
-                            `;
+                    let finalSales = sales;
+
+                    if (paymentStartDate || paymentEndDate) {
+                         const relevantPayments = allPayments.filter(p => {
+                            if (!p.data_pagamento) return false;
+                            const paymentDate = new Date(p.data_pagamento);
+                            const startMatch = !paymentStartDate || paymentDate >= new Date(paymentStartDate);
+                            const endMatch = !paymentEndDate || paymentDate <= new Date(paymentEndDate);
+                            return startMatch && endMatch;
                         });
+                        const relevantActivityIds = new Set(relevantPayments.map(p => p.activity_id));
+                        finalSales = finalSales.filter(sale => relevantActivityIds.has(sale.id));
+                    }
+                    
+                    const salesWithPaymentInfo = finalSales.map(sale => {
+                        const saleValue = sale.sale_value || 0;
+                        const paidValue = allPayments.filter(p => p.activity_id === sale.id).reduce((sum, p) => sum + (p.valor_pago || 0), 0);
+                        const balance = saleValue - paidValue;
+                        return {...sale, paidValue, balance};
+                    });
+
+                    let filteredSales = salesWithPaymentInfo;
+                    if (selectedStatus === 'paid') {
+                        filteredSales = salesWithPaymentInfo.filter(s => s.balance <= 0);
+                    } else if (selectedStatus === 'not_paid') {
+                        filteredSales = salesWithPaymentInfo.filter(s => s.balance > 0);
                     }
 
+                    const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
+                    const totalRecebido = salesWithPaymentInfo.reduce((sum, sale) => sum + sale.paidValue, 0);
+                    
+                    document.getElementById('recebiveis-total-vendido').textContent = formatCurrency(totalVendido);
+                    document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebido);
+                    document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(totalVendido - totalRecebido);
+                    
+                    let tableHTML = `<table><thead>...</thead><tbody>`; // Header omitido por brevidade
+                    if(filteredSales.length === 0){
+                         tableHTML += `<tr><td colspan="7" style="text-align: center;">Nenhuma venda encontrada.</td></tr>`;
+                    } else {
+                        filteredSales.sort((a,b) => new Date(b.sale_date) - new Date(a.sale_date)).forEach(sale => {
+                             const status = sale.balance <= 0 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
+                             tableHTML += `<tr class="recebiveis-row" data-id="${sale.id}"><td>${new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${sale.closer}</td><td>${sale.lead}</td><td>${formatCurrency(sale.sale_value)}</td><td>${formatCurrency(sale.paidValue)}</td><td>${formatCurrency(sale.balance)}</td><td>${status}</td></tr>`;
+                        });
+                    }
                     tableHTML += `</tbody></table>`;
-                    container.innerHTML = tableHTML;
+                    container.innerHTML = `<table><thead><tr><th>Data Venda</th><th>Closer</th><th>Lead</th><th>Valor Venda</th><th>Valor Recebido</th><th>Saldo Devedor</th><th>Status</th></tr></thead><tbody>${tableHTML.split('<tbody>')[1]}`;
                 };
 
                 const openPaymentModal = (activityId) => {
-                    const activity = activities.find(act => act.id == activityId);
+                    const activity = allActivities.find(act => act.id == activityId);
                     if (!activity) return;
 
                     paymentModalTitle.textContent = `Gerenciar Pagamentos para: ${activity.lead}`;
                     paymentActivityIdInput.value = activity.id;
 
                     const saleValue = activity.sale_value || 0;
-                    const activityPayments = payments.filter(p => p.activity_id === activity.id);
+                    const activityPayments = allPayments.filter(p => p.activity_id === activity.id);
                     const paidValue = activityPayments.reduce((sum, p) => sum + (p.valor_pago || 0), 0);
                     const balance = saleValue - paidValue;
 
-                    paymentModalKpis.innerHTML = `
-                        <div class="kpi-card-small"><div class="title">Valor Total</div><div class="value">${formatCurrency(saleValue)}</div></div>
-                        <div class="kpi-card-small"><div class="title">Total Pago</div><div class="value" style="color: var(--success-color);">${formatCurrency(paidValue)}</div></div>
-                        <div class="kpi-card-small"><div class="title">Saldo Devedor</div><div class="value" style="color: var(--error-color);">${formatCurrency(balance)}</div></div>
-                    `;
+                    paymentModalKpis.innerHTML = `<div class="kpi-card-small"><div class="title">Valor Total</div><div class="value">${formatCurrency(saleValue)}</div></div><div class="kpi-card-small"><div class="title">Total Pago</div><div class="value" style="color: var(--success-color);">${formatCurrency(paidValue)}</div></div><div class="kpi-card-small"><div class="title">Saldo Devedor</div><div class="value" style="color: var(--error-color);">${formatCurrency(balance)}</div></div>`;
 
-                    let paymentsHTML = `
-                        <table>
-                            <thead>
-                                <tr><th>Valor</th><th>Data</th><th>Meio de Pagamento</th><th>Ação</th></tr>
-                            </thead>
-                            <tbody>
-                    `;
+                    let paymentsHTML = `<table><thead><tr><th>Valor</th><th>Data</th><th>Meio</th><th>Ação</th></tr></thead><tbody>`;
                     if(activityPayments.length > 0) {
                         activityPayments.sort((a,b) => new Date(b.data_pagamento) - new Date(a.data_pagamento)).forEach(p => {
-                            paymentsHTML += `
-                                <tr>
-                                    <td>${formatCurrency(p.valor_pago)}</td>
-                                    <td>${new Date(p.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                                    <td>${p.meio_pagamento}</td>
-                                    <td><span class="delete-payment-btn" data-id="${p.id}">Excluir</span></td>
-                                </tr>
-                            `;
+                            paymentsHTML += `<tr><td>${formatCurrency(p.valor_pago)}</td><td>${new Date(p.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${p.meio_pagamento}</td><td><span class="delete-payment-btn" data-id="${p.id}">Excluir</span></td></tr>`;
                         });
                     } else {
-                        paymentsHTML += `<tr><td colspan="4" style="text-align:center;">Nenhum pagamento registrado.</td></tr>`;
+                        paymentsHTML += `<tr><td colspan="4" style="text-align:center;">Nenhum pagamento.</td></tr>`;
                     }
                     paymentsHTML += `</tbody></table>`;
                     paymentsListContainer.innerHTML = paymentsHTML;
@@ -2032,91 +1961,71 @@
 
                 paymentModalCloseBtn.addEventListener('click', closePaymentModal);
                 paymentModal.addEventListener('click', (e) => {
-                    if (e.target === paymentModal) {
-                        closePaymentModal();
-                    }
+                    if (e.target === paymentModal) closePaymentModal();
                 });
 
                 recebiveisContainer.addEventListener('click', (e) => {
                     const row = e.target.closest('tr.recebiveis-row');
-                    if (row) {
-                        openPaymentModal(row.dataset.id);
-                    }
+                    if (row) openPaymentModal(row.dataset.id);
                 });
 
                 addPaymentForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const activity_id = parseInt(paymentActivityIdInput.value);
-                    const valor_pago = parseFloat(document.getElementById('payment-amount').value);
-                    const data_pagamento = document.getElementById('payment-date').value;
-                    const meio_pagamento = document.getElementById('payment-method').value;
+                    const paymentData = {
+                        activity_id: parseInt(paymentActivityIdInput.value),
+                        valor_pago: parseFloat(document.getElementById('payment-amount').value),
+                        data_pagamento: document.getElementById('payment-date').value,
+                        meio_pagamento: document.getElementById('payment-method').value
+                    };
 
-                    if (!activity_id || !valor_pago || !data_pagamento) {
-                        showNotification('Por favor, preencha todos os campos do pagamento.', 'error');
-                        return;
-                    }
-
-                    const { data, error } = await supabaseClient.from('payments').insert([{ activity_id, valor_pago, data_pagamento, meio_pagamento }]).select();
+                    const { data, error } = await supabaseClient.from('payments').insert([paymentData]).select();
 
                     if(error) {
-                        showNotification(`Erro ao adicionar pagamento: ${error.message}`, 'error');
-                        console.error(error);
+                        showNotification(`Erro ao adicionar: ${error.message}`, 'error');
                     } else {
-                        showNotification('Pagamento adicionado com sucesso!', 'success');
-                        payments.push(data[0]);
-                        openPaymentModal(activity_id); // Re-render modal content
-                        renderRecebiveis(); // Re-render main table
+                        showNotification('Pagamento adicionado!', 'success');
+                        allPayments.push(data[0]);
+                        openPaymentModal(paymentData.activity_id);
+                        await renderRecebiveis();
                         addPaymentForm.reset();
                         document.getElementById('payment-date').value = toISODateString(new Date());
-
                     }
                 });
                 
                 paymentsListContainer.addEventListener('click', async (e) => {
                     if(e.target.classList.contains('delete-payment-btn')) {
                         const paymentId = e.target.dataset.id;
-                        // Usar um modal customizado em vez de confirm
-                        showNotification('Tem certeza que deseja excluir este pagamento? Esta ação não pode ser desfeita.', 'info');
-                        // Aqui você implementaria a lógica do seu modal de confirmação.
-                        // Por simplicidade, vou prosseguir com a exclusão. Se precisar, posso criar o modal.
+                        const confirmed = await showConfirm('Tem certeza que deseja excluir este pagamento?');
                         
-                        const { error } = await supabaseClient.from('payments').delete().eq('id', paymentId);
-                        
-                        if(error) {
-                             showNotification(`Erro ao excluir pagamento: ${error.message}`, 'error');
-                             console.error(error);
-                        } else {
-                            showNotification('Pagamento excluído com sucesso.', 'success');
-                            payments = payments.filter(p => p.id != paymentId);
-                            const activity_id = parseInt(paymentActivityIdInput.value);
-                            openPaymentModal(activity_id);
-                            renderRecebiveis();
+                        if (confirmed) {
+                            const { error } = await supabaseClient.from('payments').delete().eq('id', paymentId);
+                            if(error) {
+                                showNotification(`Erro ao excluir: ${error.message}`, 'error');
+                            } else {
+                                showNotification('Pagamento excluído.', 'success');
+                                allPayments = allPayments.filter(p => p.id != paymentId);
+                                openPaymentModal(parseInt(paymentActivityIdInput.value));
+                                await renderRecebiveis();
+                            }
                         }
                     }
                 });
 
-                
                 const handleDatePresetChange = (presetFilter, customFilters, startDateInput, endDateInput, callback) => {
                     const preset = presetFilter.value;
                     const today = new Date();
-                    let start = new Date();
-                    let end = new Date();
+                    let start = new Date(), end = new Date();
 
                     if (preset === 'custom') {
-                        customFilters.classList.add('visible');
-                        return;
+                        customFilters.classList.add('visible'); return;
                     }
-                    
                     customFilters.classList.remove('visible');
 
                     switch(preset) {
                         case 'today': break;
                         case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
                         case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
-                        case 'last_month':
-                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                            end = new Date(today.getFullYear(), today.getMonth(), 0);
-                            break;
+                        case 'last_month': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
                         case 'last7days': start.setDate(today.getDate() - 6); break;
                         case 'all_time': start = null; end = null; break;
                     }
@@ -2127,24 +2036,20 @@
                 };
 
                 // --- Lógica dos Filtros e Navegação ---
-                datePresetFilter.addEventListener('change', () => handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData));
-                startDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
-                endDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
+                datePresetFilter.addEventListener('change', () => handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllPanels));
+                [startDateFilter, endDateFilter].forEach(el => el.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllPanels(); }));
                 
                 historyDatePresetFilter.addEventListener('change', () => handleDatePresetChange(historyDatePresetFilter, historyCustomDateFilters, historyStartDateFilter, historyEndDateFilter, renderTable));
-                historyStartDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
-                historyEndDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
+                [historyStartDateFilter, historyEndDateFilter].forEach(el => el.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); }));
 
                 recebiveisDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis));
-                recebiveisStartDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
-                recebiveisEndDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                [recebiveisStartDateFilter, recebiveisEndDateFilter].forEach(el => el.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); }));
                 
                 recebiveisPaymentDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis));
-                recebiveisPaymentStartDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
-                recebiveisPaymentEndDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                [recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter].forEach(el => el.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); }));
 
-                userFilter.addEventListener('change', updateAllData);
-                channelFilterDash.addEventListener('change', updateAllData);
+                userFilter.addEventListener('change', updateAllPanels);
+                channelFilterDash.addEventListener('change', updateAllPanels);
                 propostasCloserFilter.addEventListener('change', renderPropostas);
                 historyTypeFilter.addEventListener('change', renderTable);
                 recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
@@ -2164,24 +2069,13 @@
                 
                 const populateCloserFilters = async () => {
                     const { data: profiles, error } = await supabaseClient.from('profiles').select('full_name');
-                    
-                    if (error) {
-                        console.error('Erro ao buscar perfis:', error);
-                        showNotification('Não foi possível carregar a lista de closers.', 'error');
-                        return;
-                    }
+                    if (error) { console.error('Erro ao buscar perfis:', error); return; }
 
                     const closers = profiles.map(p => p.full_name).filter(Boolean);
                     
-                    userFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
-                    propostasCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
-                    recebiveisCloserFilter.innerHTML = '<option value="all">Todos os Usuários</option>';
-
-                    closers.forEach(closer => {
-                        const optionHTML = `<option value="${closer}">${closer}</option>`;
-                        userFilter.innerHTML += optionHTML;
-                        propostasCloserFilter.innerHTML += optionHTML;
-                        recebiveisCloserFilter.innerHTML += optionHTML;
+                    [userFilter, propostasCloserFilter, recebiveisCloserFilter].forEach(filter => {
+                        filter.innerHTML = '<option value="all">Todos os Usuários</option>';
+                        closers.forEach(closer => filter.innerHTML += `<option value="${closer}">${closer}</option>`);
                     });
                     
                     closerNameForm.innerHTML = `<option value="${userName}">${userName}</option>`;
@@ -2190,11 +2084,8 @@
 
                 // --- Inicialização ---
                 createLancamentoBlock();
-                await fetchAllData();
-                handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData);
-                handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis);
-                handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis);
-
+                await fetchInitialData();
+                handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, () => {});
             };
 
             // --- Lógica de Autenticação ---
@@ -2213,10 +2104,7 @@
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
 
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password,
-                });
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
                 if (error) {
                     loginErrorMessage.textContent = 'E-mail ou palavra-passe inválidos.';
@@ -2235,11 +2123,7 @@
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
-                    options: {
-                        data: {
-                            full_name: name 
-                        }
-                    }
+                    options: { data: { full_name: name } }
                 });
 
                 if (error) {
