@@ -2087,40 +2087,43 @@
 
                 // MELHORIA: Assinaturas em tempo real para atualizações automáticas
                 const setupRealtimeSubscriptions = () => {
-                    supabaseClient.channel('public:activities')
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, (payload) => {
-                            console.log('Activity change received!', payload);
-                            if (payload.eventType === 'INSERT') {
-                                allActivities.push(payload.new);
-                            } else if (payload.eventType === 'UPDATE') {
-                                const index = allActivities.findIndex(a => a.id === payload.new.id);
-                                if (index > -1) allActivities[index] = payload.new;
-                            } else if (payload.eventType === 'DELETE') {
-                                allActivities = allActivities.filter(a => a.id !== payload.old.id);
-                            }
-                            updateAllPanels();
-                        })
-                        .subscribe();
+                    const channel = supabaseClient.channel('bi-data-changes');
 
-                    supabaseClient.channel('public:payments')
-                        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
-                            console.log('Payment change received!', payload);
-                            if (payload.eventType === 'INSERT') {
-                                allPayments.push(payload.new);
-                            } else if (payload.eventType === 'UPDATE') {
-                                const index = allPayments.findIndex(p => p.id === payload.new.id);
-                                if (index > -1) allPayments[index] = payload.new;
-                            } else if (payload.eventType === 'DELETE') {
-                                allPayments = allPayments.filter(p => p.id !== payload.old.id);
-                            }
-                            // MELHORIA: Chamar updateAllPanels para garantir que todas as seções que dependem de pagamentos sejam atualizadas, não apenas a aba de recebíveis.
-                            updateAllPanels();
-                            // Reabre o modal de pagamento se estiver aberto para refletir a mudança
-                            if(paymentModal.classList.contains('visible')){
-                                openPaymentModal(parseInt(paymentActivityIdInput.value));
-                            }
-                        })
-                        .subscribe();
+                    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, (payload) => {
+                        console.log('Activity change received!', payload);
+                        if (payload.eventType === 'INSERT') {
+                            allActivities.push(payload.new);
+                        } else if (payload.eventType === 'UPDATE') {
+                            const index = allActivities.findIndex(a => a.id === payload.new.id);
+                            if (index > -1) allActivities[index] = payload.new;
+                        } else if (payload.eventType === 'DELETE') {
+                            allActivities = allActivities.filter(a => a.id !== payload.old.id);
+                        }
+                        updateAllPanels();
+                    }).on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+                        console.log('Payment change received!', payload);
+                        if (payload.eventType === 'INSERT') {
+                            allPayments.push(payload.new);
+                        } else if (payload.eventType === 'UPDATE') {
+                            const index = allPayments.findIndex(p => p.id === payload.new.id);
+                            if (index > -1) allPayments[index] = payload.new;
+                        } else if (payload.eventType === 'DELETE') {
+                            allPayments = allPayments.filter(p => p.id !== payload.old.id);
+                        }
+                        updateAllPanels();
+                        if(paymentModal.classList.contains('visible')){
+                            openPaymentModal(parseInt(paymentActivityIdInput.value));
+                        }
+                    }).subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('Conectado ao canal de atualizações em tempo real!');
+                        } else if (status === 'CHANNEL_ERROR') {
+                            console.error('Erro de conexão com o canal de atualizações.');
+                            showNotification('A conexão em tempo real falhou. Atualize a página.', 'error');
+                        } else if (status === 'TIMED_OUT') {
+                            console.warn('Timeout na conexão em tempo real.');
+                        }
+                    });
                 };
 
                 // --- Inicialização ---
@@ -2205,5 +2208,6 @@
     </script>
 </body>
 </html>
-
+"
+Pelo que vi ao historico nao pode ser editado nem excluido as informações, o que fazer?
 
