@@ -591,7 +591,6 @@
                     <div class="widget channel-widget">
                         <h3>Performance por Canal</h3>
                         <div class="channel-metrics-container" id="channel-metrics-container"></div>
-                        <!-- ÁREA DO GRÁFICO ADICIONADA -->
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
                             <canvas id="channelSalesChart"></canvas>
                         </div>
@@ -907,7 +906,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONFIRMAÇÃO ADICIONADO -->
+    <!-- Modal de Confirmação -->
     <div id="confirm-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px; text-align: center;">
             <p id="confirm-message">Você tem certeza?</p>
@@ -921,7 +920,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // --- Configuração do Supabase ---
+            // --- 1. CONFIGURAÇÃO E ELEMENTOS GLOBAIS ---
             const SUPABASE_URL = 'https://tzwzgbulgfiibgodmige.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6d3pnYnVsZ2ZpaWJnb2RtaWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MzUyNjYsImV4cCI6MjA2NzIxMTI2Nn0.5BmYUgPf1IpOGjgaRtKfgssZr_iIsSflNd3hxEZnwb0';
             
@@ -1033,7 +1032,6 @@
                 const paymentModalKpis = document.getElementById('payment-modal-kpis');
                 const paymentsListContainer = document.getElementById('payments-list-container');
                 const paymentActivityIdInput = document.getElementById('payment-activity-id');
-                // NOVOS SELETORES PARA MODAL DE CONFIRMAÇÃO E ÍCONE DE PERFIL
                 const confirmModal = document.getElementById('confirm-modal');
                 const confirmMessage = document.getElementById('confirm-message');
                 const confirmBtnYes = document.getElementById('confirm-btn-yes');
@@ -1067,7 +1065,6 @@
                     if (e.target === notificationModal) closeNotification();
                 });
                 
-                // NOVA FUNÇÃO PARA MODAL DE CONFIRMAÇÃO
                 const showConfirm = (message) => {
                     return new Promise((resolve) => {
                         confirmMessage.textContent = message;
@@ -1084,18 +1081,23 @@
                     });
                 };
                 
-                // ADICIONADO EVENTO PARA ÍCONE DE PERFIL
                 profileIcon.addEventListener('click', () => {
                     showNotification(`Olá, ${userName}! Funcionalidades de perfil em breve.`, 'info');
                 });
 
                 const toISODateString = (date) => {
                     if (!date) return '';
+                    // This function correctly formats a Date object or a date string into 'YYYY-MM-DD'
+                    // by accounting for the browser's timezone to prevent off-by-one day errors.
                     const d = new Date(date);
-                     // Adjust for timezone offset
-                    const timezoneOffset = d.getTimezoneOffset() * 60000;
-                    const adjustedDate = new Date(d.getTime() - timezoneOffset);
-                    return adjustedDate.toISOString().split('T')[0];
+                    const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+                    const localDate = new Date(d.getTime() + userTimezoneOffset);
+                    
+                    const year = localDate.getFullYear();
+                    const month = String(localDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(localDate.getDate()).padStart(2, '0');
+                    
+                    return `${year}-${month}-${day}`;
                 };
                 
                 const formatCurrency = (value) => {
@@ -1270,61 +1272,65 @@
                 });
                 
                 // --- Funções de Dados (Fetch, Filter, Update) ---
-                const fetchFilteredActivities = async (source) => {
-                    let query = supabaseClient.from('activities').select('*');
-                    
-                    let startDate, endDate;
+                const fetchFilteredActivities = (source) => {
+                    let filtered = allActivities;
 
+                    let startDate, endDate;
+                    
                     if (source === 'dashboard') {
                         const selectedUser = userFilter.value;
                         const selectedChannel = channelFilterDash.value;
                         startDate = startDateFilter.value;
                         endDate = endDateFilter.value;
 
-                        if (selectedUser !== 'all') query = query.eq('closer', selectedUser);
-                        if (selectedChannel !== 'all') query = query.eq('channel', selectedChannel);
-
+                        if (selectedUser !== 'all') {
+                            filtered = filtered.filter(act => act.closer === selectedUser);
+                        }
+                        if (selectedChannel !== 'all') {
+                            filtered = filtered.filter(act => act.channel === selectedChannel);
+                        }
                     } else if (source === 'history') {
                         startDate = historyStartDateFilter.value;
                         endDate = historyEndDateFilter.value;
-                        
+
                         const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
-                        if(selectedTypes.length > 0) query = query.in('type', selectedTypes);
+                        if (selectedTypes.length > 0 && selectedTypes.length < 5) {
+                            filtered = filtered.filter(act => selectedTypes.includes(act.type));
+                        }
                     }
                     
-                    if (startDate) query = query.gte('date', startDate);
-                    if (endDate) query = query.lte('date', endDate);
-                    
-                    const { data, error } = await query;
-                    
-                    if (error) {
-                        console.error(`Erro ao buscar dados para ${source}:`, error);
-                        showNotification('Falha ao carregar dados do banco.', 'error');
-                        return [];
+                    if (startDate) {
+                        filtered = filtered.filter(act => act.date >= startDate);
                     }
-                    return data;
+                    if (endDate) {
+                        filtered = filtered.filter(act => act.date <= endDate);
+                    }
+                    
+                    return filtered;
                 };
 
                 async function fetchInitialData() {
-                    const [activitiesRes, paymentsRes] = await Promise.all([
+                    const [activitiesRes, paymentsRes, profilesRes] = await Promise.all([
                         supabaseClient.from('activities').select('*'),
-                        supabaseClient.from('payments').select('*')
+                        supabaseClient.from('payments').select('*'),
+                        supabaseClient.from('profiles').select('id, full_name'),
                     ]);
 
-                    if (activitiesRes.error || paymentsRes.error) {
-                        console.error('Erro ao buscar dados iniciais:', activitiesRes.error || paymentsRes.error);
+                    if (activitiesRes.error || paymentsRes.error || profilesRes.error) {
+                        console.error('Erro ao buscar dados iniciais:', activitiesRes.error || paymentsRes.error || profilesRes.error);
                         showNotification('Não foi possível carregar os dados do banco.', 'error');
                         return;
                     }
                     allActivities = activitiesRes.data;
                     allPayments = paymentsRes.data;
                     
-                    await populateCloserFilters();
+                    await populateCloserFilters(profilesRes.data);
                     await updateAllPanels();
                 }
                 
                 const updateAllPanels = async () => {
-                    const dashboardData = await fetchFilteredActivities('dashboard');
+                    // Os dados são filtrados a partir do array local, não do banco
+                    const dashboardData = fetchFilteredActivities('dashboard');
                     updateDashboard(dashboardData);
                     updateRanking(dashboardData);
                     updatePipelineWidgets(dashboardData);
@@ -1549,11 +1555,28 @@
                         });
                     }
 
-                    const filteredActivities = await fetchFilteredActivities('history');
+                    const filteredActivities = fetchFilteredActivities('history');
                     
+                    // Aplicar filtros de coluna da tabela de histórico
+                    const columnFilters = {};
+                    document.querySelectorAll('#history-table-container .history-filter').forEach(filter => {
+                        if (filter.value && filter.value !== 'Todos') {
+                            columnFilters[filter.dataset.key] = filter.value.toLowerCase();
+                        }
+                    });
+
+                    const activitiesToRender = filteredActivities.filter(act => {
+                        return Object.keys(columnFilters).every(key => {
+                            const actValue = act[key];
+                            const filterValue = columnFilters[key];
+                            if (actValue === null || actValue === undefined) return false;
+                            return String(actValue).toLowerCase().includes(filterValue);
+                        });
+                    });
+
                     const finalTableBody = document.querySelector('#history-table-container table tbody');
                     finalTableBody.innerHTML = '';
-                    filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
+                    activitiesToRender.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
                         const row = document.createElement('tr');
                         row.dataset.id = act.id;
                         
@@ -1568,7 +1591,8 @@
                                 return parseInt(a.type.substring(1)) > parseInt(act.type.substring(1));
                             });
                             if (!hasHigherStage) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                                // CORREÇÃO: O botão "Finalizar" agora é "Marcar como Perdida" para refletir a ação
+                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}" data-id="${act.id}">Perdida</button>`;
                             }
                         }
 
@@ -1657,7 +1681,7 @@
                         showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s)!`, 'success');
                         lancamentosContainer.innerHTML = '';
                         createLancamentoBlock();
-                        await fetchInitialData(); // Recarrega todos os dados
+                        // MELHORIA: Não precisa recarregar todos os dados, o listener em tempo real fará isso. Apenas limpa o formulário.
                     }
                 });
 
@@ -1706,18 +1730,18 @@
                     }
 
                     if (target.classList.contains('end-deal-btn')) {
+                        const activityId = target.dataset.id;
                         const leadName = target.dataset.lead;
-                        const leadActivities = allActivities.filter(act => act.lead === leadName).sort((a, b) => new Date(b.date) - new Date(a.date));
-                        
-                        if (leadActivities.length > 0) {
-                            const latestActivity = leadActivities[0];
-                            const { error } = await supabaseClient.from('activities').update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) }).eq('id', latestActivity.id);
+
+                        const confirmed = await showConfirm(`Tem a certeza que quer marcar a negociação com "${leadName}" como perdida?`);
+                        if (confirmed) {
+                            const { error } = await supabaseClient.from('activities').update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) }).eq('id', activityId);
 
                             if (error) {
                                 showNotification(`Falha ao finalizar: ${error.message}`, 'error');
                             } else {
-                                showNotification(`Negociação com ${leadName} foi finalizada.`, 'success');
-                                await fetchInitialData();
+                                showNotification(`Negociação com ${leadName} foi finalizada como "Perdida".`, 'success');
+                                // A atualização em tempo real cuidará do re-render
                             }
                         }
                     }
@@ -1761,7 +1785,7 @@
                     } else {
                         showNotification('Alterações salvas!', 'success');
                         closeEditModal();
-                        await fetchInitialData();
+                        // O listener em tempo real vai atualizar a UI
                     }
                 });
                 
@@ -1770,21 +1794,11 @@
                     propostasContainer.innerHTML = '';
                     const selectedCloser = propostasCloserFilter.value;
 
-                    // Busca propostas em aberto direto do Supabase
-                    let query = supabaseClient.from('activities')
-                        .select('*')
-                        .eq('proposal_sent', 'Sim')
-                        .is('deal_outcome', null);
+                    // Filtra os dados locais
+                    let openProposals = allActivities.filter(act => act.proposal_sent === 'Sim' && !act.deal_outcome);
                     
                     if (selectedCloser !== 'all') {
-                        query = query.eq('closer', selectedCloser);
-                    }
-                    
-                    const { data: openProposals, error } = await query;
-                    
-                    if(error) {
-                        console.error("Erro ao buscar propostas:", error);
-                        return;
+                        openProposals = openProposals.filter(act => act.closer === selectedCloser);
                     }
                     
                     // Agrupa por lead para mostrar apenas a última proposta
@@ -1854,7 +1868,7 @@
                         showNotification(`Falha ao atualizar: ${error.message}`, 'error');
                     } else {
                         showNotification(`Proposta atualizada!`, 'success');
-                        await fetchInitialData(); // Recarrega tudo
+                        // A UI será atualizada pelo listener em tempo real
                     }
                 });
 
@@ -1869,13 +1883,10 @@
                     const paymentStartDate = recebiveisPaymentStartDateFilter.value;
                     const paymentEndDate = recebiveisPaymentEndDateFilter.value;
                     
-                    let query = supabaseClient.from('activities').select('*').eq('deal_outcome', 'Ganha');
-                    if (selectedCloser !== 'all') query = query.eq('closer', selectedCloser);
-                    if (saleStartDate) query = query.gte('sale_date', saleStartDate);
-                    if (saleEndDate) query = query.lte('sale_date', saleEndDate);
-
-                    const { data: sales, error } = await query;
-                    if(error){ console.error("Erro ao buscar vendas:", error); return; }
+                    let sales = allActivities.filter(act => act.deal_outcome === 'Ganha');
+                    if (selectedCloser !== 'all') sales = sales.filter(act => act.closer === selectedCloser);
+                    if (saleStartDate) sales = sales.filter(act => act.sale_date >= saleStartDate);
+                    if (saleEndDate) sales = sales.filter(act => act.sale_date <= saleEndDate);
 
                     let finalSales = sales;
 
@@ -1883,8 +1894,8 @@
                          const relevantPayments = allPayments.filter(p => {
                             if (!p.data_pagamento) return false;
                             const paymentDate = new Date(p.data_pagamento);
-                            const startMatch = !paymentStartDate || paymentDate >= new Date(paymentStartDate);
-                            const endMatch = !paymentEndDate || paymentDate <= new Date(paymentEndDate);
+                            const startMatch = !paymentStartDate || paymentDate >= new Date(paymentStartDate + 'T00:00:00');
+                            const endMatch = !paymentEndDate || paymentDate <= new Date(paymentEndDate + 'T00:00:00');
                             return startMatch && endMatch;
                         });
                         const relevantActivityIds = new Set(relevantPayments.map(p => p.activity_id));
@@ -1900,9 +1911,9 @@
 
                     let filteredSales = salesWithPaymentInfo;
                     if (selectedStatus === 'paid') {
-                        filteredSales = salesWithPaymentInfo.filter(s => s.balance <= 0);
+                        filteredSales = salesWithPaymentInfo.filter(s => s.balance <= 0.01); // Use small tolerance for float issues
                     } else if (selectedStatus === 'not_paid') {
-                        filteredSales = salesWithPaymentInfo.filter(s => s.balance > 0);
+                        filteredSales = salesWithPaymentInfo.filter(s => s.balance > 0.01);
                     }
 
                     const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
@@ -1912,17 +1923,16 @@
                     document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebido);
                     document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(totalVendido - totalRecebido);
                     
-                    let tableHTML = `<table><thead>...</thead><tbody>`; // Header omitido por brevidade
+                    let tableBodyHTML = '';
                     if(filteredSales.length === 0){
-                         tableHTML += `<tr><td colspan="7" style="text-align: center;">Nenhuma venda encontrada.</td></tr>`;
+                         tableBodyHTML = `<tr><td colspan="7" style="text-align: center;">Nenhuma venda encontrada.</td></tr>`;
                     } else {
                         filteredSales.sort((a,b) => new Date(b.sale_date) - new Date(a.sale_date)).forEach(sale => {
-                             const status = sale.balance <= 0 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
-                             tableHTML += `<tr class="recebiveis-row" data-id="${sale.id}"><td>${new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${sale.closer}</td><td>${sale.lead}</td><td>${formatCurrency(sale.sale_value)}</td><td>${formatCurrency(sale.paidValue)}</td><td>${formatCurrency(sale.balance)}</td><td>${status}</td></tr>`;
+                            const status = sale.balance <= 0.01 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
+                            tableBodyHTML += `<tr class="recebiveis-row" data-id="${sale.id}"><td>${new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td><td>${sale.closer}</td><td>${sale.lead}</td><td>${formatCurrency(sale.sale_value)}</td><td>${formatCurrency(sale.paidValue)}</td><td>${formatCurrency(sale.balance)}</td><td>${status}</td></tr>`;
                         });
                     }
-                    tableHTML += `</tbody></table>`;
-                    container.innerHTML = `<table><thead><tr><th>Data Venda</th><th>Closer</th><th>Lead</th><th>Valor Venda</th><th>Valor Recebido</th><th>Saldo Devedor</th><th>Status</th></tr></thead><tbody>${tableHTML.split('<tbody>')[1]}`;
+                    container.innerHTML = `<table><thead><tr><th>Data Venda</th><th>Closer</th><th>Lead</th><th>Valor Venda</th><th>Valor Recebido</th><th>Saldo Devedor</th><th>Status</th></tr></thead><tbody>${tableBodyHTML}</tbody></table>`;
                 };
 
                 const openPaymentModal = (activityId) => {
@@ -1978,15 +1988,13 @@
                         meio_pagamento: document.getElementById('payment-method').value
                     };
 
-                    const { data, error } = await supabaseClient.from('payments').insert([paymentData]).select();
+                    const { error } = await supabaseClient.from('payments').insert([paymentData]);
 
                     if(error) {
                         showNotification(`Erro ao adicionar: ${error.message}`, 'error');
                     } else {
                         showNotification('Pagamento adicionado!', 'success');
-                        allPayments.push(data[0]);
-                        openPaymentModal(paymentData.activity_id);
-                        await renderRecebiveis();
+                        // A UI será atualizada pelo listener
                         addPaymentForm.reset();
                         document.getElementById('payment-date').value = toISODateString(new Date());
                     }
@@ -2003,9 +2011,7 @@
                                 showNotification(`Erro ao excluir: ${error.message}`, 'error');
                             } else {
                                 showNotification('Pagamento excluído.', 'success');
-                                allPayments = allPayments.filter(p => p.id != paymentId);
-                                openPaymentModal(parseInt(paymentActivityIdInput.value));
-                                await renderRecebiveis();
+                                // A UI será atualizada pelo listener
                             }
                         }
                     }
@@ -2067,10 +2073,7 @@
                     });
                 });
                 
-                const populateCloserFilters = async () => {
-                    const { data: profiles, error } = await supabaseClient.from('profiles').select('full_name');
-                    if (error) { console.error('Erro ao buscar perfis:', error); return; }
-
+                const populateCloserFilters = async (profiles) => {
                     const closers = profiles.map(p => p.full_name).filter(Boolean);
                     
                     [userFilter, propostasCloserFilter, recebiveisCloserFilter].forEach(filter => {
@@ -2082,11 +2085,48 @@
                     closerNameForm.disabled = true;
                 };
 
+                // MELHORIA: Assinaturas em tempo real para atualizações automáticas
+                const setupRealtimeSubscriptions = () => {
+                    supabaseClient.channel('public:activities')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, (payload) => {
+                            console.log('Activity change received!', payload);
+                            if (payload.eventType === 'INSERT') {
+                                allActivities.push(payload.new);
+                            } else if (payload.eventType === 'UPDATE') {
+                                const index = allActivities.findIndex(a => a.id === payload.new.id);
+                                if (index > -1) allActivities[index] = payload.new;
+                            } else if (payload.eventType === 'DELETE') {
+                                allActivities = allActivities.filter(a => a.id !== payload.old.id);
+                            }
+                            updateAllPanels();
+                        })
+                        .subscribe();
+
+                    supabaseClient.channel('public:payments')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+                            console.log('Payment change received!', payload);
+                            if (payload.eventType === 'INSERT') {
+                                allPayments.push(payload.new);
+                            } else if (payload.eventType === 'UPDATE') {
+                                const index = allPayments.findIndex(p => p.id === payload.new.id);
+                                if (index > -1) allPayments[index] = payload.new;
+                            } else if (payload.eventType === 'DELETE') {
+                                allPayments = allPayments.filter(p => p.id !== payload.old.id);
+                            }
+                            // Reabre o modal de pagamento se estiver aberto para refletir a mudança
+                            if(paymentModal.classList.contains('visible')){
+                                openPaymentModal(parseInt(paymentActivityIdInput.value));
+                            }
+                            renderRecebiveis();
+                        })
+                        .subscribe();
+                };
+
                 // --- Inicialização ---
                 createLancamentoBlock();
-                // Mova esta chamada para ANTES de buscar os dados para que o filtro inicial seja aplicado
                 handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, () => {});
                 await fetchInitialData();
+                setupRealtimeSubscriptions(); // Inicia os listeners
             };
 
             // --- Lógica de Autenticação ---
@@ -2130,10 +2170,21 @@
                 if (error) {
                     signupErrorMessage.textContent = error.message;
                     signupErrorMessage.style.display = 'block';
-                } else {
-                    showNotification('Registo efetuado com sucesso! Por favor, faça login.', 'success');
-                    signupSection.style.display = 'none';
-                    loginSection.style.display = 'flex';
+                } else if (data.user) {
+                    // CORREÇÃO: Adiciona o perfil do usuário na tabela 'profiles' após o registro.
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert({ id: data.user.id, full_name: name });
+
+                    if (profileError) {
+                        console.error("Profile creation error: ", profileError);
+                        signupErrorMessage.textContent = `Conta criada, mas falha ao salvar o nome: ${profileError.message}`;
+                        signupErrorMessage.style.display = 'block';
+                    } else {
+                        showNotification('Registo efetuado com sucesso! Por favor, faça login.', 'success');
+                        signupSection.style.display = 'none';
+                        loginSection.style.display = 'flex';
+                    }
                 }
             });
 
@@ -2153,5 +2204,4 @@
     </script>
 </body>
 </html>
-
 
