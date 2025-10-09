@@ -2113,11 +2113,12 @@
                             } else if (payload.eventType === 'DELETE') {
                                 allPayments = allPayments.filter(p => p.id !== payload.old.id);
                             }
+                            // MELHORIA: Chamar updateAllPanels para garantir que todas as seções que dependem de pagamentos sejam atualizadas, não apenas a aba de recebíveis.
+                            updateAllPanels();
                             // Reabre o modal de pagamento se estiver aberto para refletir a mudança
                             if(paymentModal.classList.contains('visible')){
                                 openPaymentModal(parseInt(paymentActivityIdInput.value));
                             }
-                            renderRecebiveis();
                         })
                         .subscribe();
                 };
@@ -2204,4 +2205,5 @@
     </script>
 </body>
 </html>
+
 
