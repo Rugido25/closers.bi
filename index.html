@@ -137,8 +137,16 @@
             flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
         }
-        header .logo { font-size: 1.5rem; font-weight: 700; }
-        header .logo span { color: var(--highlight-pink); }
+        header .logo { 
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            display: flex;
+            align-items: center;
+        }
+        header .logo img {
+            height: 40px;
+            width: auto;
+        }
         header nav { display: flex; gap: 10px; flex-wrap: wrap;}
         header .nav-link {
             color: #E2E8F0;
@@ -308,7 +316,6 @@
         .kpi-card-large .value { 
             font-size: 2.5rem; 
             font-weight: 700; 
-            color: var(--highlight-pink);
         }
         
         /* Custom colors for Recebiveis KPIs */
@@ -320,6 +327,9 @@
         }
         #recebiveis-saldo-pendente {
             color: var(--error-color);
+        }
+        #kpi-valor-vendas-total {
+             color: var(--highlight-pink);
         }
 
         .widget { 
@@ -538,7 +548,7 @@
                                 <option>Inbound</option>
                                 <option>Outbound</option>
                                 <option>Webinar</option>
-                                <option>Vanguarda</option>
+                                <option>Instagram</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -924,8 +934,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // --- Configuração do Supabase ---
-            const SUPABASE_URL = 'https://oepxipviqhmcqrovvdev.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lcHhpcHZpcWhtY3Fyb3Z2ZGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTk4NjUsImV4cCI6MjA3NDIzNTg2NX0.teTcbp8RBNt0xC7UjK8r-ZIiGH9dIuoOiGEt30UAPf4';
+            const SUPABASE_URL = 'https://tzwzgbulgfiibgodmige.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6d3pnYnVsZ2ZpaWJnb2RtaWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MzUyNjYsImV4cCI6MjA2NzIxMTI2Nn0.5BmYUgPf1IpOGjgaRtKfgssZr_iIsSflNd3hxEZnwb0';
             
             const { createClient } = window.supabase;
             const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1281,7 +1291,7 @@
                         showNotification('Não foi possível carregar os dados de pagamentos.', 'error');
                         return;
                     }
-                    activities = activitiesRes.data.filter(act => act.sector !== 'Escola');
+                    activities = activitiesRes.data;
                     payments = paymentsRes.data;
                     
                     await populateCloserFilters();
@@ -2194,6 +2204,10 @@
                         recebiveisCloserFilter.innerHTML += optionHTML;
                     });
                     
+                    userFilter.value = 'all';
+                    propostasCloserFilter.value = 'all';
+                    recebiveisCloserFilter.value = 'all';
+
                     closerNameForm.innerHTML = `<option value="${userName}">${userName}</option>`;
                     closerNameForm.disabled = true;
                 };
