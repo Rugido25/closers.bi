@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI GCR Digital</title>
+    <title>BI Grupo Rugido</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -15,7 +15,7 @@
             --card-bg: #FFFFFF;
             --text-dark: #2D3748;
             --text-light: #718096;
-            --highlight-pink: #E53E75; 
+            --highlight-pink: #E53E75;
             --border-color: #E2E8F0;
             --success-color: #48BB78;
             --error-color: #F56565;
@@ -137,16 +137,8 @@
             flex-shrink: 0;
             border-bottom: 1px solid var(--border-color);
         }
-        header .logo { 
-            font-size: 1.5rem; 
-            font-weight: 700; 
-            display: flex;
-            align-items: center;
-        }
-        header .logo img {
-            height: 40px;
-            width: auto;
-        }
+        header .logo { font-size: 1.5rem; font-weight: 700; }
+        header .logo span { color: var(--highlight-pink); }
         header nav { display: flex; gap: 10px; flex-wrap: wrap;}
         header .nav-link {
             color: #E2E8F0;
@@ -328,9 +320,6 @@
         }
         #recebiveis-saldo-pendente {
             color: var(--error-color);
-        }
-        #kpi-valor-vendas-total {
-             color: var(--highlight-pink);
         }
 
         .widget { 
