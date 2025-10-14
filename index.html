@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI Grupo Rugido</title>
+    <title>BI GCR Digital</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -15,7 +15,7 @@
             --card-bg: #FFFFFF;
             --text-dark: #2D3748;
             --text-light: #718096;
-            --highlight-pink: #E53E75;
+            --highlight-pink: #E53E75; 
             --border-color: #E2E8F0;
             --success-color: #48BB78;
             --error-color: #F56565;
@@ -316,6 +316,7 @@
         .kpi-card-large .value { 
             font-size: 2.5rem; 
             font-weight: 700; 
+            color: var(--highlight-pink);
         }
         
         /* Custom colors for Recebiveis KPIs */
@@ -548,7 +549,7 @@
                                 <option>Inbound</option>
                                 <option>Outbound</option>
                                 <option>Webinar</option>
-                                <option>Instagram</option>
+                                <option>Vanguarda</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -1291,7 +1292,7 @@
                         showNotification('Não foi possível carregar os dados de pagamentos.', 'error');
                         return;
                     }
-                    activities = activitiesRes.data;
+                    activities = activitiesRes.data.filter(act => act.sector !== 'Escola');;
                     payments = paymentsRes.data;
                     
                     await populateCloserFilters();
