@@ -508,8 +508,8 @@
             </nav>
             <div class="header-actions">
                 <button id="theme-toggle-btn">
-                      <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                      <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                 </button>
                 <span id="user-display-name" class="user-display-name"></span>
                 <button id="logout-button" class="action-button">Sair</button>
@@ -1514,7 +1514,11 @@
 
                     const finalTableBody = document.querySelector('#history-table-container table tbody');
                     finalTableBody.innerHTML = '';
-                    filteredActivities.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(act => {
+                    filteredActivities.sort((a,b) => {
+                        const dateA = new Date((a.sale_date || a.date) + 'T00:00:00');
+                        const dateB = new Date((b.sale_date || b.date) + 'T00:00:00');
+                        return dateB - dateA; // MUDADO: de volta para dateB - dateA (ordem descendente)
+                    }).forEach(act => {
                         const row = document.createElement('tr');
                         row.dataset.id = act.id;
                         
@@ -1924,8 +1928,8 @@
                             } else {
                                 paymentDateMatch = associatedPayments.some(p => {
                                     if(!p.data_pagamento) return false;
-                                    const paymentDateParts = p.data_pagamento.split('-');
-                                    const paymentDate = new Date(paymentDateParts[0], paymentDateParts[1] - 1, paymentDateParts[2]);
+                                    // CORREÇÃO: Força a data a ser lida como local, e não UTC.
+                                    const paymentDate = new Date(p.data_pagamento + 'T00:00:00');
                                     const paymentStartDateMatch = !paymentStartDate || paymentDate >= paymentStartDate;
                                     const paymentEndDateMatch = !paymentEndDate || paymentDate <= paymentEndDate;
                                     return paymentStartDateMatch && paymentEndDateMatch;
@@ -1937,17 +1941,42 @@
                     });
                     
                     const totalVendido = sales.reduce((sum, sale) => sum + (sale.sale_value || 0), 0);
-                    const totalRecebido = sales.reduce((sum, sale) => {
+                    
+                    // LÓGICA CORRIGIDA PARA O KPI "VALOR RECEBIDO"
+                    const totalRecebidoFiltered = payments
+                        .filter(p => {
+                            // 1. Verifica se o pagamento pertence a uma das vendas filtradas
+                            const associatedSale = sales.find(s => s.id === p.activity_id);
+                            if (!associatedSale) return false;
+
+                            // 2. Verifica se o pagamento corresponde ao filtro de data de recebimento (se houver)
+                            if (paymentStartDate || paymentEndDate) {
+                                if (!p.data_pagamento) return false;
+                                // CORREÇÃO: Força a data a ser lida como local, e não UTC.
+                                const paymentDate = new Date(p.data_pagamento + 'T00:00:00');
+                                
+                                const paymentStartDateMatch = !paymentStartDate || paymentDate >= paymentStartDate;
+                                const paymentEndDateMatch = !paymentEndDate || paymentDate <= paymentEndDate;
+                                return paymentStartDateMatch && paymentEndDateMatch;
+                            }
+                            
+                            // 3. Se não houver filtro de data de pagamento, inclui todos os pagamentos das vendas filtradas
+                            return true;
+                        })
+                        .reduce((paymentSum, p) => paymentSum + (p.valor_pago || 0), 0);
+
+                    // Calcula o Saldo Pendente com base no valor total recebido (all-time)
+                    const totalRecebidoAllTime = sales.reduce((sum, sale) => {
                         const paidValue = payments
                             .filter(p => p.activity_id === sale.id)
                             .reduce((paymentSum, p) => paymentSum + (p.valor_pago || 0), 0);
                         return sum + paidValue;
                     }, 0);
-                    const saldoPendente = totalVendido - totalRecebido;
+                    const saldoPendente = totalVendido - totalRecebidoAllTime;
 
                     document.getElementById('recebiveis-total-vendido').textContent = formatCurrency(totalVendido);
-                    document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebido);
-                    document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(saldoPendente);
+                    document.getElementById('recebiveis-valor-recebido').textContent = formatCurrency(totalRecebidoFiltered); // Usa o valor filtrado
+                    document.getElementById('recebiveis-saldo-pendente').textContent = formatCurrency(saldoPendente); // Usa o saldo real
                     
                     let tableHTML = `
                         <table>
@@ -1977,7 +2006,7 @@
                             const paidValue = payments.filter(p => p.activity_id === sale.id).reduce((sum,p) => sum + (p.valor_pago || 0), 0);
                             const balance = saleValue - paidValue;
                             const status = balance <= 0 ? '<span class="status-pago">Pago</span>' : '<span class="status-pendente">Pendente</span>';
-                           
+                            
                             tableHTML += `
                                 <tr class="recebiveis-row" data-id="${sale.id}">
                                     <td>${sale.sale_date ? new Date(sale.sale_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</td>
@@ -2336,4 +2365,9 @@
     </script>
 </body>
 </html>
+
+
+
+
+
 
