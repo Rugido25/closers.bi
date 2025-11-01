@@ -875,6 +875,29 @@
     </div>
 
 
+    <!-- Modal de Data de Venda/Perda -->
+    <div id="sale-date-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <button id="sale-date-modal-close-btn" class="modal-close-btn">&times;</button>
+            <h3 id="sale-date-modal-title">Confirmar Data</h3>
+            <form id="sale-date-form" style="margin-top: 20px;">
+                <input type="hidden" id="sale-date-activity-id">
+                <input type="hidden" id="sale-date-outcome">
+                <input type="hidden" id="sale-date-value">
+                
+                <div class="form-group full-width">
+                    <label for="sale-date-input" id="sale-date-label">Por favor, selecione a data da venda:</label>
+                    <input type="date" id="sale-date-input" required>
+                </div>
+                
+                <div class="form-group full-width" style="margin-top: 20px;">
+                    <button type="submit" id="sale-date-confirm-btn">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Modal de Gestão de Pagamentos -->
     <div id="payment-modal" class="modal-overlay">
         <div class="modal-content">
@@ -1028,6 +1051,18 @@
                 const paymentModalKpis = document.getElementById('payment-modal-kpis');
                 const paymentsListContainer = document.getElementById('payments-list-container');
                 const paymentActivityIdInput = document.getElementById('payment-activity-id');
+
+                // Elementos do novo Modal de Data de Venda/Perda
+                const saleDateModal = document.getElementById('sale-date-modal');
+                const saleDateModalCloseBtn = document.getElementById('sale-date-modal-close-btn');
+                const saleDateForm = document.getElementById('sale-date-form');
+                const saleDateModalTitle = document.getElementById('sale-date-modal-title');
+                const saleDateLabel = document.getElementById('sale-date-label');
+                const saleDateInput = document.getElementById('sale-date-input');
+                const saleDateActivityIdInput = document.getElementById('sale-date-activity-id');
+                const saleDateOutcomeInput = document.getElementById('sale-date-outcome');
+                const saleDateValueInput = document.getElementById('sale-date-value');
+                const saleDateConfirmBtn = document.getElementById('sale-date-confirm-btn');
 
 
                 userDisplayName.textContent = userName;
@@ -1861,15 +1896,36 @@
                     const id = button.dataset.id;
                     if (!id) return;
 
-                    let updatedData = {};
-                    const saleDate = toISODateString(new Date());
-
+                    // MODIFICADO: Em vez de atualizar o DB, abre o modal de data
                     if (button.classList.contains('btn-ganha')) {
-                        updatedData = { deal_outcome: 'Ganha', sale_value: parseFloat(button.dataset.value), sale_date: saleDate };
+                        const value = button.dataset.value;
+                        openSaleDateModal(id, 'Ganha', value);
                     } else if (button.classList.contains('btn-perdida')) {
-                        updatedData = { deal_outcome: 'Perdida', sale_date: saleDate };
-                    } else {
+                        openSaleDateModal(id, 'Perdida', null);
+                    }
+                    
+                    // O código de update do Supabase foi movido para o listener do novo modal
+                });
+
+                // NOVO: Listener para o formulário do modal de data
+                saleDateForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const id = saleDateActivityIdInput.value;
+                    const outcome = saleDateOutcomeInput.value;
+                    const value = parseFloat(saleDateValueInput.value);
+                    const saleDate = saleDateInput.value; // Pega a data selecionada
+
+                    if (!id || !outcome || !saleDate) {
+                        showNotification('Erro: Informações incompletas. Tente novamente.', 'error');
                         return;
+                    }
+
+                    let updatedData = {};
+                    if (outcome === 'Ganha') {
+                        updatedData = { deal_outcome: 'Ganha', sale_value: value, sale_date: saleDate };
+                    } else { // 'Perdida'
+                        updatedData = { deal_outcome: 'Perdida', sale_date: saleDate };
                     }
 
                     const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
@@ -1877,10 +1933,12 @@
                     if (error) {
                         showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
                     } else {
-                        showNotification(`Proposta atualizada com sucesso!`, 'success');
-                        // Realtime will handle the update
+                        showNotification(`Proposta marcada como "${outcome}" com sucesso!`, 'success');
+                        closeSaleDateModal();
+                        // O Realtime vai atualizar a lista de propostas
                     }
                 });
+
 
                 // --- Lógica da Seção de Recebíveis ---
                 const renderRecebiveis = () => {
@@ -2075,6 +2133,41 @@
                     paymentModal.classList.remove('visible');
                     addPaymentForm.reset();
                 };
+
+                // NOVO: Funções para controlar o novo modal de data
+                const openSaleDateModal = (activityId, outcome, value) => {
+                    saleDateActivityIdInput.value = activityId;
+                    saleDateOutcomeInput.value = outcome;
+                    saleDateValueInput.value = value || 0;
+                    saleDateInput.value = toISODateString(new Date()); // Pre-fill with today
+
+                    if (outcome === 'Ganha') {
+                        saleDateModalTitle.textContent = 'Confirmar Data da Venda';
+                        saleDateLabel.textContent = 'Por favor, selecione a data da venda:';
+                        saleDateConfirmBtn.textContent = 'Confirmar Venda';
+                        saleDateConfirmBtn.style.backgroundColor = 'var(--success-color)';
+                    } else {
+                        saleDateModalTitle.textContent = 'Confirmar Data da Perda';
+                        saleDateLabel.textContent = 'Por favor, selecione a data da perda:';
+                        saleDateConfirmBtn.textContent = 'Confirmar Perda';
+                        saleDateConfirmBtn.style.backgroundColor = 'var(--error-color)';
+                    }
+                    saleDateModal.classList.add('visible');
+                };
+
+                const closeSaleDateModal = () => {
+                    saleDateModal.classList.remove('visible');
+                    saleDateForm.reset();
+                };
+
+                // NOVO: Listeners para fechar o novo modal
+                saleDateModalCloseBtn.addEventListener('click', closeSaleDateModal);
+                saleDateModal.addEventListener('click', (e) => {
+                    if (e.target === saleDateModal) {
+                        closeSaleDateModal();
+                    }
+                });
+                // FIM DAS NOVAS FUNÇÕES
 
                 paymentModalCloseBtn.addEventListener('click', closePaymentModal);
                 paymentModal.addEventListener('click', (e) => {
@@ -2365,6 +2458,7 @@
     </script>
 </body>
 </html>
+
 
 
 
