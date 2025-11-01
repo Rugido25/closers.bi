@@ -1569,13 +1569,13 @@
                             const hasR5 = activities.some(a => a.lead === act.lead && a.type === 'R5');
 
                             if (act.type === 'R1' && ![hasR2, hasR3, hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar R1</button>`;
+                                actionsHTML = `<button class="end-deal-btn" data-id="${act.id}" data-date="${act.date}">Finalizar R1</button>`;
                             } else if (act.type === 'R2' && ![hasR3, hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                                actionsHTML = `<button class="end-deal-btn" data-id="${act.id}" data-date="${act.date}">Finalizar</button>`;
                             } else if (act.type === 'R3' && ![hasR4, hasR5].some(Boolean)) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                                actionsHTML = `<button class="end-deal-btn" data-id="${act.id}" data-date="${act.date}">Finalizar</button>`;
                             } else if (act.type === 'R4' && !hasR5) {
-                                actionsHTML = `<button class="end-deal-btn" data-lead="${act.lead}">Finalizar</button>`;
+                                actionsHTML = `<button class="end-deal-btn" data-id="${act.id}" data-date="${act.date}">Finalizar</button>`;
                             }
                         }
                         if(isOwner) {
@@ -1757,17 +1757,15 @@
                     }
 
                     if (target.classList.contains('end-deal-btn')) {
-                        const leadName = target.dataset.lead;
-                        const leadActivities = activities
-                            .filter(act => act.lead === leadName)
-                            .sort((a, b) => new Date(b.date) - new Date(a.date));
-                        
-                        if (leadActivities.length > 0) {
-                            const latestActivity = leadActivities[0];
+                        const activityId = target.dataset.id; // MUDADO: Pega o ID da atividade da linha
+                        const activityDate = target.dataset.date; // NOVO: Pega a data da atividade da linha
+                        const leadName = target.closest('tr').querySelector('td:nth-child(4)').textContent; // Pega o nome do lead para a notificação
+
+                        if (activityId && activityDate) {
                             const { error } = await supabaseClient
                                 .from('activities')
-                                .update({ deal_outcome: 'Perdida', sale_date: toISODateString(new Date()) })
-                                .eq('id', latestActivity.id);
+                                .update({ deal_outcome: 'Perdida', sale_date: activityDate }) // CORRIGIDO: Usa a data da atividade, não a de hoje
+                                .eq('id', activityId); // CORRIGIDO: Atualiza o ID da atividade específica
 
                             if (error) {
                                 showNotification(`Falha ao finalizar a negociação: ${error.message}`, 'error');
@@ -2458,6 +2456,7 @@
     </script>
 </body>
 </html>
+
 
 
 
