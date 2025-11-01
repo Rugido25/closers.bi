@@ -1133,254 +1133,7 @@
                     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 };
 
-                // --- Lógica do Formulário de Lançamento Diário ---
-                const handleFormDatePresetChange = () => {
-                    const preset = datePresetForm.value;
-                    const today = new Date();
-                    let targetDate = new Date();
-
-                    if (preset === 'custom') {
-                        customDateFormGroup.style.display = 'block';
-                        dateFormInput.required = true;
-                        dateFormInput.value = '';
-                        return;
-                    }
-                    
-                    customDateFormGroup.style.display = 'none';
-                    dateFormInput.required = false;
-
-                    switch(preset) {
-                        case 'today': break;
-                        case 'yesterday': targetDate.setDate(today.getDate() - 1); break;
-                    }
-                    dateFormInput.value = toISODateString(targetDate);
-                };
-
-                datePresetForm.addEventListener('change', handleFormDatePresetChange);
-                handleFormDatePresetChange();
-                
-                const createLancamentoBlock = () => {
-                    const blockId = `block-${Date.now()}`;
-                    const block = document.createElement('div');
-                    block.className = 'lancamento-block';
-                    block.id = blockId;
-                    block.innerHTML = `
-                        <button type="button" class="remove-lancamento-btn" data-target="${blockId}">X</button>
-                        <div class="form-grid">
-                            <div class="form-group" id="lead-container-${blockId}"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
-                            <div class="form-group"><label for="bdr-${blockId}">BDR</label><input type="text" id="bdr-${blockId}"></div>
-                            <div class="form-group"><label for="revenue-${blockId}">Faturamento da Empresa</label>
-                                <select id="revenue-${blockId}">
-                                    <option>Desconhecido</option>
-                                    <option>-50k</option>
-                                    <option>50k a 150k</option>
-                                    <option>150k a 750k</option>
-                                    <option>acima de 750k</option>
-                                </select>
-                            </div>
-                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Vanguarda</option></select></div>
-                            <div class="form-group"><label for="qualification-${blockId}">Qualificação</label>
-                                <select id="qualification-${blockId}">
-                                    <option>Não Identificado</option>
-                                    <option>Qualificado</option>
-                                    <option>Não Qualificado</option>
-                                </select>
-                            </div>
-                            <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label>
-                                <select id="activity-type-${blockId}" required>
-                                    <option value="">Selecione o Tipo</option>
-                                    <option>R1</option>
-                                    <option>R2</option>
-                                    <option>R3</option>
-                                    <option>R4</option>
-                                    <option>R5</option>
-                                </select>
-                            </div>
-                            <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
-                            <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
-                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label>
-                                <select id="funnel-evolution-${blockId}">
-                                    <option value="">Nenhuma</option>
-                                    <option>De R1 para R2</option>
-                                    <option>De R2 para R3</option>
-                                    <option>De R3 para R4</option>
-                                    <option>De R4 para R5</option>
-                                </select>
-                            </div>
-                            <div class="form-group full-width"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
-                            <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
-                        </div>
-                    `;
-                    lancamentosContainer.appendChild(block);
-
-                    const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
-                    activityTypeSelect.addEventListener('change', () => updateLeadInput(blockId, activityTypeSelect.value));
-                };
-
-                const updateLeadInput = (blockId, meetingType) => {
-                    const leadContainer = document.getElementById(`lead-container-${blockId}`);
-                    const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
-
-                    if (meetingType.startsWith('R') && meetingType !== 'R1') {
-                        const stageNumber = parseInt(meetingType.substring(1));
-                        const previousStage = 'R' + (stageNumber - 1);
-                        const currentStage = meetingType;
-                        
-                        const myLeadsInPreviousStage = new Set(
-                            activities
-                                .filter(act => act.closer_id === userId && act.type === previousStage)
-                                .map(act => act.lead)
-                        );
-                        
-                        const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
-                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
-                            const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
-
-                            const previousStageActivities = activities
-                                .filter(a => a.lead === lead && a.type === previousStage)
-                                .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                            let isBlockedByNoShow = false;
-                            if (previousStageActivities.length > 0) {
-                                const latestMeeting = previousStageActivities[0];
-                                if (latestMeeting.status === 'No Show') {
-                                    const wasRescued = activities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
-                                    if (!wasRescued) {
-                                        isBlockedByNoShow = true;
-                                    }
-                                }
-                            }
-
-                            return !hasAdvanced && !isClosed && !isBlockedByNoShow;
-                        });
-
-                        let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
-                        selectHTML += `<select id="lead-name-${blockId}" required>`;
-                        selectHTML += '<option value="">Selecione um Lead</option>';
-                        eligibleLeads.forEach(lead => {
-                            selectHTML += `<option value="${lead}">${lead}</option>`;
-                        });
-                        selectHTML += '</select>';
-                        
-                        leadContainer.innerHTML = selectHTML;
-
-                        const newLeadSelect = document.getElementById(`lead-name-${blockId}`);
-                        newLeadSelect.addEventListener('change', () => {
-                            const selectedLeadName = newLeadSelect.value;
-                            if (!selectedLeadName) return;
-
-                            const previousActivity = activities
-                                .filter(act => act.lead === selectedLeadName && act.type === previousStage)
-                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-
-                            if (previousActivity) {
-                                document.getElementById(`bdr-${blockId}`).value = previousActivity.bdr || '';
-                                document.getElementById(`revenue-${blockId}`).value = previousActivity.company_revenue || 'Desconhecido';
-                                document.getElementById(`channel-${blockId}`).value = previousActivity.channel || 'Inbound';
-                                document.getElementById(`qualification-${blockId}`).value = previousActivity.qualification || 'Qualificado';
-                                document.getElementById(`reuniao-resgatada-${blockId}`).value = previousActivity.reuniao_resgatada || 'Não';
-                            }
-                        });
-
-                    } else {
-                        if (currentLeadElement.tagName.toLowerCase() === 'select') {
-                            leadContainer.innerHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required>`;
-                        }
-                    }
-                };
-
-
-                addLancamentoBtn.addEventListener('click', createLancamentoBlock);
-                lancamentosContainer.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('remove-lancamento-btn')) {
-                        const targetId = e.target.getAttribute('data-target');
-                        document.getElementById(targetId).remove();
-                    }
-                });
-                
-                // --- Funções de Dados (Fetch, Filter, Update) ---
-                async function fetchAllData() {
-                    const [activitiesRes, paymentsRes] = await Promise.all([
-                        supabaseClient.from('activities').select('*'),
-                        supabaseClient.from('payments').select('*')
-                    ]);
-
-                    if (activitiesRes.error) {
-                        console.error('Erro ao buscar atividades:', activitiesRes.error);
-                        showNotification('Não foi possível carregar os dados do banco.', 'error');
-                        return;
-                    }
-                    if (paymentsRes.error) {
-                        console.error('Erro ao buscar pagamentos:', paymentsRes.error);
-                        showNotification('Não foi possível carregar os dados de pagamentos.', 'error');
-                        return;
-                    }
-                    activities = activitiesRes.data.filter(act => act.sector !== 'Escola');;
-                    payments = paymentsRes.data;
-                    
-                    await populateCloserFilters();
-                    updateAllData();
-                }
-
-                const filterActivities = (source) => {
-                    let filtered = [...activities];
-                    
-                    if (source === 'dashboard') {
-                        const selectedUser = userFilter.value;
-                        const selectedChannel = channelFilterDash.value;
-                        const startDate = startDateFilter.value ? new Date(startDateFilter.value + 'T00:00:00') : null;
-                        const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
-
-                        filtered = activities.filter(act => {
-                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
-                            const userMatch = selectedUser === 'all' || act.closer === selectedUser;
-                            const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
-                            const startDateMatch = !startDate || activityDate >= startDate;
-                            const endDateMatch = !endDate || activityDate <= endDate;
-                            return userMatch && channelMatch && startDateMatch && endDateMatch;
-                        });
-                    } else if (source === 'history') {
-                        const filters = {};
-                        document.querySelectorAll('#history-table-container .history-filter').forEach(f => { filters[f.dataset.key] = f.value; });
-                        
-                        const startDate = historyStartDateFilter.value ? new Date(historyStartDateFilter.value + 'T00:00:00') : null;
-                        const endDate = historyEndDateFilter.value ? new Date(historyEndDateFilter.value + 'T23:59:59') : null;
-                        
-                        const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
-
-                        const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome'];
-                        
-                        filtered = activities.filter(act => {
-                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
-                            const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
-                            if (!dateMatch) return false;
-
-                            const typeMatch = (selectedTypes.length === 0 ? true : selectedTypes.includes(act.type)) || act.deal_outcome;
-                            if (!typeMatch) return false;
-
-                            return Object.entries(filters).every(([key, value]) => {
-                                if (!value || value === 'Todos') return true;
-                                if (selectFilterKeys.includes(key)) {
-                                    return String(act[key]) === value;
-                                }
-                                return String(act[key]).toLowerCase().includes(value.toLowerCase());
-                            });
-                        });
-                    }
-                    return filtered;
-                };
-
-                const updateAllData = () => {
-                    const filteredData = filterActivities('dashboard');
-                    updateDashboard(filteredData);
-                    updateRanking(filteredData);
-                    updatePipelineWidgets(filteredData);
-                    updateChannelMetrics(filteredData);
-                    renderPropostas();
-                    renderTable(); // Histórico
-                    renderRecebiveis(); // Recebíveis
-                };
+                // --- INÍCIO DA REORDENAÇÃO: DEFINIÇÃO DE FUNÇÕES ---
 
                 // --- Funções de Renderização do Dashboard ---
                 const updateDashboard = (data) => {
@@ -1602,94 +1355,6 @@
                         finalTableBody.appendChild(row);
                     });
                 };
-                
-                clearHistoryFiltersBtn.addEventListener('click', () => {
-                    const filters = document.querySelectorAll('#history-table-container .history-filter');
-                    filters.forEach(filter => {
-                        if (filter.tagName.toLowerCase() === 'select') {
-                            filter.selectedIndex = 0;
-                        } else {
-                            filter.value = '';
-                        }
-                    });
-                    historyDatePresetFilter.value = 'all_time';
-                    historyStartDateFilter.value = '';
-                    historyEndDateFilter.value = '';
-                    historyCustomDateFilters.classList.remove('visible');
-                    historyTypeFilter.querySelectorAll('input').forEach(cb => cb.checked = true);
-                    renderTable();
-                });
-
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const headerData = { date: document.getElementById('date-form').value, closer: userName, closer_id: userId };
-                    const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
-                    const newActivitiesPayload = [];
-                    let formIsValid = true;
-
-                    lancamentoBlocks.forEach(block => {
-                        const blockId = block.id;
-                        document.getElementById(`lead-name-${blockId}`).style.borderColor = '';
-                        document.getElementById(`activity-type-${blockId}`).style.borderColor = '';
-                    });
-
-                    lancamentoBlocks.forEach(block => {
-                        const blockId = block.id;
-                        const leadNameInput = document.getElementById(`lead-name-${blockId}`);
-                        const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
-
-                        if (!leadNameInput.value.trim()) {
-                            leadNameInput.style.borderColor = 'var(--error-color)';
-                            formIsValid = false;
-                        }
-                        if (!activityTypeSelect.value) {
-                            activityTypeSelect.style.borderColor = 'var(--error-color)';
-                            formIsValid = false;
-                        }
-
-                        if (formIsValid) {
-                            const newActivity = {
-                                ...headerData, 
-                                lead: leadNameInput.value.trim(), 
-                                bdr: document.getElementById(`bdr-${blockId}`).value,
-                                channel: document.getElementById(`channel-${blockId}`).value, 
-                                type: activityTypeSelect.value, 
-                                status: document.getElementById(`activity-status-${blockId}`).value, 
-                                evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
-                                proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
-                                notes: document.getElementById(`notes-${blockId}`).value,
-                                qualification: document.getElementById(`qualification-${blockId}`).value,
-                                company_revenue: document.getElementById(`revenue-${blockId}`).value,
-                                proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
-                                reuniao_resgatada: document.getElementById(`reuniao-resgatada-${blockId}`).value,
-                            };
-                            newActivitiesPayload.push(newActivity);
-                        }
-                    });
-
-                    if (!formIsValid) {
-                        showNotification('Por favor, preencha os campos obrigatórios (Lead e Tipo de Reunião) em todos os lançamentos.', 'error');
-                        return;
-                    }
-
-                    if (lancamentoBlocks.length === 0) {
-                        showNotification('Adicione pelo menos um lançamento antes de salvar.', 'error');
-                        return;
-                    }
-                    
-                    const { error } = await supabaseClient.from('activities').insert(newActivitiesPayload);
-
-                    if (error) {
-                        console.error('Erro ao salvar:', error);
-                        showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
-                    } else {
-                        showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
-                        lancamentosContainer.innerHTML = '';
-                        createLancamentoBlock();
-                        // Realtime will handle the update, but we can optimistically fetch here
-                        await fetchAllData();
-                    }
-                });
 
                 const openEditModal = (activityId) => {
                     const activity = activities.find(act => act.id == activityId);
@@ -1715,120 +1380,6 @@
                     editModal.classList.remove('visible');
                 };
 
-                historyContainer.addEventListener('click', async (e) => {
-                    const target = e.target;
-                    
-                    if (target.classList.contains('toggle-notes-btn')) {
-                        e.preventDefault();
-                        const cell = target.closest('td');
-                        const truncated = cell.querySelector('.notes-text-truncated');
-                        const full = cell.querySelector('.notes-text-full');
-                        
-                        const isCurrentlyExpanded = full.style.display === 'block';
-                        
-                        full.style.display = isCurrentlyExpanded ? 'none' : 'block';
-                        truncated.style.display = isCurrentlyExpanded ? 'block' : 'none';
-                        target.textContent = isCurrentlyExpanded ? 'Ver mais' : 'Ver menos';
-                        return;
-                    }
-                    
-                    const row = target.closest('tr');
-                    if (row && row.dataset.id && !target.closest('button')) {
-                        openEditModal(row.dataset.id);
-                        return;
-                    }
-
-                    if (target.classList.contains('delete-activity-btn')) {
-                        const id = target.dataset.id;
-                        const ok = await showConfirm('Tem certeza que deseja excluir esta atividade? Todos os pagamentos associados também serão excluídos.');
-                        if (!ok) return;
-
-                        const { error } = await supabaseClient
-                        .from('activities')
-                        .delete()
-                        .eq('id', id);
-
-                        if (error) {
-                            showNotification(`Erro ao excluir: ${error.message}`, 'error');
-                        } else {
-                            showNotification('Atividade excluída.', 'success');
-                            // o Realtime vai atualizar a UI
-                        }
-                    }
-
-                    if (target.classList.contains('end-deal-btn')) {
-                        const activityId = target.dataset.id; // MUDADO: Pega o ID da atividade da linha
-                        const activityDate = target.dataset.date; // NOVO: Pega a data da atividade da linha
-                        const leadName = target.closest('tr').querySelector('td:nth-child(4)').textContent; // Pega o nome do lead para a notificação
-
-                        if (activityId && activityDate) {
-                            const { error } = await supabaseClient
-                                .from('activities')
-                                .update({ deal_outcome: 'Perdida', sale_date: activityDate }) // CORRIGIDO: Usa a data da atividade, não a de hoje
-                                .eq('id', activityId); // CORRIGIDO: Atualiza o ID da atividade específica
-
-                            if (error) {
-                                showNotification(`Falha ao finalizar a negociação: ${error.message}`, 'error');
-                            } else {
-                                showNotification(`Negociação com ${leadName} foi finalizada.`, 'success');
-                                await fetchAllData();
-                            }
-                        }
-                    }
-                });
-
-                modalCloseBtn.addEventListener('click', closeEditModal);
-                editModal.addEventListener('click', (e) => {
-                    if (e.target === editModal) {
-                        closeEditModal();
-                    }
-                });
-
-                editForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const id = document.getElementById('edit-activity-id').value;
-                    
-                    if (!id) {
-                        showNotification('ERRO: ID da atividade não encontrado. Não foi possível salvar.', 'error');
-                        return;
-                    }
-
-                    const activityTypeSelect = document.getElementById('edit-activity-type');
-                    if (!activityTypeSelect.value) {
-                        showNotification('O campo "Tipo de Reunião" é obrigatório.', 'error');
-                        activityTypeSelect.style.borderColor = 'var(--error-color)';
-                        return;
-                    }
-                    activityTypeSelect.style.borderColor = '';
-
-                    const updatedData = {
-                        date: document.getElementById('edit-date').value,
-                        lead: document.getElementById('edit-lead-name').value,
-                        bdr: document.getElementById('edit-bdr').value,
-                        company_revenue: document.getElementById('edit-revenue').value,
-                        channel: document.getElementById('edit-channel').value,
-                        qualification: document.getElementById('edit-qualification').value,
-                        type: activityTypeSelect.value,
-                        status: document.getElementById('edit-activity-status').value,
-                        proposal_sent: document.getElementById('edit-proposal-sent').value,
-                        reuniao_resgatada: document.getElementById('edit-reuniao-resgatada').value,
-                        evolution: document.getElementById('edit-funnel-evolution').value,
-                        proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
-                        notes: document.getElementById('edit-notes').value,
-                    };
-
-                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
-
-                    if (error) {
-                        console.error('Erro ao atualizar:', error);
-                        showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error');
-                    } else {
-                        showNotification('Alterações salvas com sucesso!', 'success');
-                        closeEditModal();
-                        // Realtime will handle update
-                    }
-                });
-                
                 // --- Lógica da Seção de Propostas ---
                 const renderPropostas = () => {
                     propostasContainer.innerHTML = '';
@@ -1878,65 +1429,6 @@
                         }
                     });
                 };
-
-                propostasContainer.addEventListener('click', async (e) => {
-                    const target = e.target;
-                    
-                    if (target.classList.contains('editable')) {
-                        const id = target.dataset.id;
-                        openEditModal(id);
-                        return;
-                    }
-
-                    const button = target.closest('button');
-                    if (!button) return;
-
-                    const id = button.dataset.id;
-                    if (!id) return;
-
-                    // MODIFICADO: Em vez de atualizar o DB, abre o modal de data
-                    if (button.classList.contains('btn-ganha')) {
-                        const value = button.dataset.value;
-                        openSaleDateModal(id, 'Ganha', value);
-                    } else if (button.classList.contains('btn-perdida')) {
-                        openSaleDateModal(id, 'Perdida', null);
-                    }
-                    
-                    // O código de update do Supabase foi movido para o listener do novo modal
-                });
-
-                // NOVO: Listener para o formulário do modal de data
-                saleDateForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-
-                    const id = saleDateActivityIdInput.value;
-                    const outcome = saleDateOutcomeInput.value;
-                    const value = parseFloat(saleDateValueInput.value);
-                    const saleDate = saleDateInput.value; // Pega a data selecionada
-
-                    if (!id || !outcome || !saleDate) {
-                        showNotification('Erro: Informações incompletas. Tente novamente.', 'error');
-                        return;
-                    }
-
-                    let updatedData = {};
-                    if (outcome === 'Ganha') {
-                        updatedData = { deal_outcome: 'Ganha', sale_value: value, sale_date: saleDate };
-                    } else { // 'Perdida'
-                        updatedData = { deal_outcome: 'Perdida', sale_date: saleDate };
-                    }
-
-                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
-
-                    if (error) {
-                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
-                    } else {
-                        showNotification(`Proposta marcada como "${outcome}" com sucesso!`, 'success');
-                        closeSaleDateModal();
-                        // O Realtime vai atualizar a lista de propostas
-                    }
-                });
-
 
                 // --- Lógica da Seção de Recebíveis ---
                 const renderRecebiveis = () => {
@@ -2132,7 +1624,7 @@
                     addPaymentForm.reset();
                 };
 
-                // NOVO: Funções para controlar o novo modal de data
+                // Funções para controlar o novo modal de data
                 const openSaleDateModal = (activityId, outcome, value) => {
                     saleDateActivityIdInput.value = activityId;
                     saleDateOutcomeInput.value = outcome;
@@ -2158,139 +1650,243 @@
                     saleDateForm.reset();
                 };
 
-                // NOVO: Listeners para fechar o novo modal
-                saleDateModalCloseBtn.addEventListener('click', closeSaleDateModal);
-                saleDateModal.addEventListener('click', (e) => {
-                    if (e.target === saleDateModal) {
-                        closeSaleDateModal();
+                // --- Funções de Filtro e Atualização ---
+                const filterActivities = (source) => {
+                    let filtered = [...activities];
+                    
+                    if (source === 'dashboard') {
+                        const selectedUser = userFilter.value;
+                        const selectedChannel = channelFilterDash.value;
+                        const startDate = startDateFilter.value ? new Date(startDateFilter.value + 'T00:00:00') : null;
+                        const endDate = endDateFilter.value ? new Date(endDateFilter.value + 'T23:59:59') : null;
+
+                        filtered = activities.filter(act => {
+                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
+                            const userMatch = selectedUser === 'all' || act.closer === selectedUser;
+                            const channelMatch = selectedChannel === 'all' || act.channel === selectedChannel;
+                            const startDateMatch = !startDate || activityDate >= startDate;
+                            const endDateMatch = !endDate || activityDate <= endDate;
+                            return userMatch && channelMatch && startDateMatch && endDateMatch;
+                        });
+                    } else if (source === 'history') {
+                        const filters = {};
+                        document.querySelectorAll('#history-table-container .history-filter').forEach(f => { filters[f.dataset.key] = f.value; });
+                        
+                        const startDate = historyStartDateFilter.value ? new Date(historyStartDateFilter.value + 'T00:00:00') : null;
+                        const endDate = historyEndDateFilter.value ? new Date(historyEndDateFilter.value + 'T23:59:59') : null;
+                        
+                        const selectedTypes = Array.from(historyTypeFilter.querySelectorAll('input:checked')).map(cb => cb.value);
+
+                        const selectFilterKeys = ['closer', 'channel', 'company_revenue', 'qualification', 'status', 'reuniao_resgatada', 'deal_outcome'];
+                        
+                        filtered = activities.filter(act => {
+                            const activityDate = new Date((act.sale_date || act.date) + 'T00:00:00');
+                            const dateMatch = (!startDate || activityDate >= startDate) && (!endDate || activityDate <= endDate);
+                            if (!dateMatch) return false;
+
+                            const typeMatch = (selectedTypes.length === 0 ? true : selectedTypes.includes(act.type)) || act.deal_outcome;
+                            if (!typeMatch) return false;
+
+                            return Object.entries(filters).every(([key, value]) => {
+                                if (!value || value === 'Todos') return true;
+                                if (selectFilterKeys.includes(key)) {
+                                    return String(act[key]) === value;
+                                }
+                                return String(act[key]).toLowerCase().includes(value.toLowerCase());
+                            });
+                        });
                     }
-                });
-                // FIM DAS NOVAS FUNÇÕES
+                    return filtered;
+                };
 
-                paymentModalCloseBtn.addEventListener('click', closePaymentModal);
-                paymentModal.addEventListener('click', (e) => {
-                    if (e.target === paymentModal) {
-                        closePaymentModal();
-                    }
-                });
+                const updateAllData = () => {
+                    const filteredData = filterActivities('dashboard');
+                    updateDashboard(filteredData);
+                    updateRanking(filteredData);
+                    updatePipelineWidgets(filteredData);
+                    updateChannelMetrics(filteredData);
+                    renderPropostas(); 
+                    renderTable(); // Histórico
+                    renderRecebiveis(); // Recebíveis
+                };
 
-                recebiveisContainer.addEventListener('click', (e) => {
-                    const row = e.target.closest('tr.recebiveis-row');
-                    if (row) {
-                        openPaymentModal(row.dataset.id);
-                    }
-                });
+                // --- Funções de Dados (Fetch, Filter, Update) ---
+                async function fetchAllData() {
+                    const [activitiesRes, paymentsRes] = await Promise.all([
+                        supabaseClient.from('activities').select('*'),
+                        supabaseClient.from('payments').select('*')
+                    ]);
 
-                addPaymentForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const activity_id = parseInt(paymentActivityIdInput.value);
-                    const valor_pago = parseFloat(document.getElementById('payment-amount').value);
-                    const data_pagamento = document.getElementById('payment-date').value;
-                    const meio_pagamento = document.getElementById('payment-method').value;
-
-                    if (!activity_id || !valor_pago || !data_pagamento) {
-                        showNotification('Por favor, preencha todos os campos do pagamento.', 'error');
+                    if (activitiesRes.error) {
+                        console.error('Erro ao buscar atividades:', activitiesRes.error);
+                        showNotification('Não foi possível carregar os dados do banco.', 'error');
                         return;
                     }
-
-                    const { data, error } = await supabaseClient.from('payments').insert([{ activity_id, valor_pago, data_pagamento, meio_pagamento }]).select();
-
-                    if(error) {
-                        showNotification(`Erro ao adicionar pagamento: ${error.message}`, 'error');
-                        console.error(error);
-                    } else {
-                        showNotification('Pagamento adicionado com sucesso!', 'success');
-                        // Realtime will handle the update
-                        addPaymentForm.reset();
-                        document.getElementById('payment-date').value = toISODateString(new Date());
-
+                    if (paymentsRes.error) {
+                        console.error('Erro ao buscar pagamentos:', paymentsRes.error);
+                        showNotification('Não foi possível carregar os dados de pagamentos.', 'error');
+                        return;
                     }
-                });
-                
-                paymentsListContainer.addEventListener('click', async (e) => {
-                    if(e.target.classList.contains('delete-payment-btn')) {
-                        const paymentId = e.target.dataset.id;
-                        const ok = await showConfirm('Tem certeza que deseja excluir este pagamento?');
-                        if (!ok) return;
-                        
-                        const { error } = await supabaseClient.from('payments').delete().eq('id', paymentId);
-                        
-                        if(error) {
-                             showNotification(`Erro ao excluir pagamento: ${error.message}`, 'error');
-                             console.error(error);
-                        } else {
-                            showNotification('Pagamento excluído com sucesso.', 'success');
-                            // Realtime will handle update
-                        }
-                    }
-                });
+                    activities = activitiesRes.data.filter(act => act.sector !== 'Escola');;
+                    payments = paymentsRes.data;
+                    
+                    await populateCloserFilters();
+                    updateAllData(); // Esta chamada agora é segura
+                }
 
-                
-                const handleDatePresetChange = (presetFilter, customFilters, startDateInput, endDateInput, callback) => {
-                    const preset = presetFilter.value;
+                // --- Lógica do Formulário de Lançamento Diário ---
+                const handleFormDatePresetChange = () => {
+                    const preset = datePresetForm.value;
                     const today = new Date();
-                    let start = new Date();
-                    let end = new Date();
+                    let targetDate = new Date();
 
                     if (preset === 'custom') {
-                        customFilters.classList.add('visible');
+                        customDateFormGroup.style.display = 'block';
+                        dateFormInput.required = true;
+                        dateFormInput.value = '';
                         return;
                     }
                     
-                    customFilters.classList.remove('visible');
+                    customDateFormGroup.style.display = 'none';
+                    dateFormInput.required = false;
 
                     switch(preset) {
                         case 'today': break;
-                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
-                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
-                        case 'last_month':
-                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                            end = new Date(today.getFullYear(), today.getMonth(), 0);
-                            break;
-                        case 'last7days': start.setDate(today.getDate() - 6); break;
-                        case 'all_time': start = null; end = null; break;
+                        case 'yesterday': targetDate.setDate(today.getDate() - 1); break;
                     }
-                    
-                    startDateInput.value = start ? toISODateString(start) : '';
-                    endDateInput.value = end ? toISODateString(end) : '';
-                    callback();
+                    dateFormInput.value = toISODateString(targetDate);
                 };
 
-                // --- Lógica dos Filtros e Navegação ---
-                datePresetFilter.addEventListener('change', () => handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData));
-                startDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
-                endDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
-                
-                historyDatePresetFilter.addEventListener('change', () => handleDatePresetChange(historyDatePresetFilter, historyCustomDateFilters, historyStartDateFilter, historyEndDateFilter, renderTable));
-                historyStartDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
-                historyEndDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
+                const createLancamentoBlock = () => {
+                    const blockId = `block-${Date.now()}`;
+                    const block = document.createElement('div');
+                    block.className = 'lancamento-block';
+                    block.id = blockId;
+                    block.innerHTML = `
+                        <button type="button" class="remove-lancamento-btn" data-target="${blockId}">X</button>
+                        <div class="form-grid">
+                            <div class="form-group" id="lead-container-${blockId}"><label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required></div>
+                            <div class="form-group"><label for="bdr-${blockId}">BDR</label><input type="text" id="bdr-${blockId}"></div>
+                            <div class="form-group"><label for="revenue-${blockId}">Faturamento da Empresa</label>
+                                <select id="revenue-${blockId}">
+                                    <option>Desconhecido</option>
+                                    <option>-50k</option>
+                                    <option>50k a 150k</option>
+                                    <option>150k a 750k</option>
+                                    <option>acima de 750k</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="channel-${blockId}">Canal</label><select id="channel-${blockId}"><option>Inbound</option><option>Outbound</option><option>Webinar</option><option>Vanguarda</option></select></div>
+                            <div class="form-group"><label for="qualification-${blockId}">Qualificação</label>
+                                <select id="qualification-${blockId}">
+                                    <option>Não Identificado</option>
+                                    <option>Qualificado</option>
+                                    <option>Não Qualificado</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="reuniao-resgatada-${blockId}">Reunião Resgatada?</label><select id="reuniao-resgatada-${blockId}"><option>Não</option><option>Sim</option></select></div>
+                            <div class="form-group"><label for="activity-type-${blockId}">Tipo de Reunião</label>
+                                <select id="activity-type-${blockId}" required>
+                                    <option value="">Selecione o Tipo</option>
+                                    <option>R1</option>
+                                    <option>R2</option>
+                                    <option>R3</option>
+                                    <option>R4</option>
+                                    <option>R5</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="activity-status-${blockId}">Status da Atividade</label><select id="activity-status-${blockId}"><option>Reunião Realizada</option><option>Reunião Reagendada</option><option>No Show</option></select></div>
+                            <div class="form-group"><label for="proposal-sent-${blockId}">Proposta Enviada?</label><select id="proposal-sent-${blockId}"><option>Não</option><option>Sim</option></select></div>
+                            <div class="form-group"><label for="funnel-evolution-${blockId}">Evolução no Funil</label>
+                                <select id="funnel-evolution-${blockId}">
+                                    <option value="">Nenhuma</option>
+                                    <option>De R1 para R2</option>
+                                    <option>De R2 para R3</option>
+                                    <option>De R3 para R4</option>
+                                    <option>De R4 para R5</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width"><label for="proposal-value-${blockId}">Valor da Proposta (R$)</label><input type="number" id="proposal-value-${blockId}" placeholder="7000"></div>
+                            <div class="form-group full-width"><label for="notes-${blockId}">Observações</label><textarea id="notes-${blockId}" placeholder="Adicione notas sobre a negociação..."></textarea></div>
+                        </div>
+                    `;
+                    lancamentosContainer.appendChild(block);
 
-                recebiveisDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis));
-                recebiveisStartDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
-                recebiveisEndDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
-                
-                recebiveisPaymentDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis));
-                recebiveisPaymentStartDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
-                recebiveisPaymentEndDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                    const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
+                    activityTypeSelect.addEventListener('change', () => updateLeadInput(blockId, activityTypeSelect.value));
+                };
 
-                userFilter.addEventListener('change', updateAllData);
-                channelFilterDash.addEventListener('change', updateAllData);
-                propostasCloserFilter.addEventListener('change', renderPropostas);
-                historyTypeFilter.addEventListener('change', renderTable);
-                recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
-                recebiveisStatusFilter.addEventListener('change', renderRecebiveis);
+                const updateLeadInput = (blockId, meetingType) => {
+                    const leadContainer = document.getElementById(`lead-container-${blockId}`);
+                    const currentLeadElement = document.getElementById(`lead-name-${blockId}`);
 
+                    if (meetingType.startsWith('R') && meetingType !== 'R1') {
+                        const stageNumber = parseInt(meetingType.substring(1));
+                        const previousStage = 'R' + (stageNumber - 1);
+                        const currentStage = meetingType;
+                        
+                        const myLeadsInPreviousStage = new Set(
+                            activities
+                                .filter(act => act.closer_id === userId && act.type === previousStage)
+                                .map(act => act.lead)
+                        );
+                        
+                        const eligibleLeads = [...myLeadsInPreviousStage].filter(lead => {
+                            const hasAdvanced = activities.some(a => a.lead === lead && a.type === currentStage && a.status === 'Reunião Realizada');
+                            const isClosed = activities.some(a => a.lead === lead && a.deal_outcome);
 
-                navLinks.forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        navLinks.forEach(l => l.classList.remove('active'));
-                        contentSections.forEach(s => s.classList.remove('active'));
-                        const targetId = link.getAttribute('data-target');
-                        document.getElementById(targetId).classList.add('active');
-                        link.classList.add('active');
-                    });
-                });
+                            const previousStageActivities = activities
+                                .filter(a => a.lead === lead && a.type === previousStage)
+                                .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                            let isBlockedByNoShow = false;
+                            if (previousStageActivities.length > 0) {
+                                const latestMeeting = previousStageActivities[0];
+                                if (latestMeeting.status === 'No Show') {
+                                    const wasRescued = activities.some(a => a.lead === lead && a.reuniao_resgatada === 'Sim');
+                                    if (!wasRescued) {
+                                        isBlockedByNoShow = true;
+                                    }
+                                }
+                            }
+
+                            return !hasAdvanced && !isClosed && !isBlockedByNoShow;
+                        });
+
+                        let selectHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label>`;
+                        selectHTML += `<select id="lead-name-${blockId}" required>`;
+                        selectHTML += '<option value="">Selecione um Lead</option>';
+                        eligibleLeads.forEach(lead => {
+                            selectHTML += `<option value="${lead}">${lead}</option>`;
+                        });
+                        selectHTML += '</select>';
+                        
+                        leadContainer.innerHTML = selectHTML;
+
+                        const newLeadSelect = document.getElementById(`lead-name-${blockId}`);
+                        newLeadSelect.addEventListener('change', () => {
+                            const selectedLeadName = newLeadSelect.value;
+                            if (!selectedLeadName) return;
+
+                            const previousActivity = activities
+                                .filter(act => act.lead === selectedLeadName && act.type === previousStage)
+                                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+                            if (previousActivity) {
+                                document.getElementById(`bdr-${blockId}`).value = previousActivity.bdr || '';
+                                document.getElementById(`revenue-${blockId}`).value = previousActivity.company_revenue || 'Desconhecido';
+                                document.getElementById(`channel-${blockId}`).value = previousActivity.channel || 'Inbound';
+                                document.getElementById(`qualification-${blockId}`).value = previousActivity.qualification || 'Qualificado';
+                                document.getElementById(`reuniao-resgatada-${blockId}`).value = previousActivity.reuniao_resgatada || 'Não';
+                            }
+                        });
+
+                    } else {
+                        if (currentLeadElement.tagName.toLowerCase() === 'select') {
+                            leadContainer.innerHTML = `<label for="lead-name-${blockId}">Lead/Empresa</label><input type="text" id="lead-name-${blockId}" required>`;
+                        }
+                    }
+                };
                 
                 const populateCloserFilters = async () => {
                     const { data: profiles, error } = await supabaseClient.from('profiles').select('full_name');
@@ -2375,7 +1971,418 @@
                         });
                 };
 
+                // --- FIM DA REORDENAÇÃO ---
+
+                // --- Inicialização e Event Listeners ---
+
+                // Listeners do Formulário Diário
+                datePresetForm.addEventListener('change', handleFormDatePresetChange);
+                addLancamentoBtn.addEventListener('click', createLancamentoBlock);
+                lancamentosContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-lancamento-btn')) {
+                        const targetId = e.target.getAttribute('data-target');
+                        document.getElementById(targetId).remove();
+                    }
+                });
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const headerData = { date: document.getElementById('date-form').value, closer: userName, closer_id: userId };
+                    const lancamentoBlocks = document.querySelectorAll('.lancamento-block');
+                    const newActivitiesPayload = [];
+                    let formIsValid = true;
+
+                    lancamentoBlocks.forEach(block => {
+                        const blockId = block.id;
+                        document.getElementById(`lead-name-${blockId}`).style.borderColor = '';
+                        document.getElementById(`activity-type-${blockId}`).style.borderColor = '';
+                    });
+
+                    lancamentoBlocks.forEach(block => {
+                        const blockId = block.id;
+                        const leadNameInput = document.getElementById(`lead-name-${blockId}`);
+                        const activityTypeSelect = document.getElementById(`activity-type-${blockId}`);
+
+                        if (!leadNameInput.value.trim()) {
+                            leadNameInput.style.borderColor = 'var(--error-color)';
+                            formIsValid = false;
+                        }
+                        if (!activityTypeSelect.value) {
+                            activityTypeSelect.style.borderColor = 'var(--error-color)';
+                            formIsValid = false;
+                        }
+
+                        if (formIsValid) {
+                            const newActivity = {
+                                ...headerData, 
+                                lead: leadNameInput.value.trim(), 
+                                bdr: document.getElementById(`bdr-${blockId}`).value,
+                                channel: document.getElementById(`channel-${blockId}`).value, 
+                                type: activityTypeSelect.value, 
+                                status: document.getElementById(`activity-status-${blockId}`).value, 
+                                evolution: document.getElementById(`funnel-evolution-${blockId}`).value, 
+                                proposal_value: parseFloat(document.getElementById(`proposal-value-${blockId}`).value) || null,
+                                notes: document.getElementById(`notes-${blockId}`).value,
+                                qualification: document.getElementById(`qualification-${blockId}`).value,
+                                company_revenue: document.getElementById(`revenue-${blockId}`).value,
+                                proposal_sent: document.getElementById(`proposal-sent-${blockId}`).value,
+                                reuniao_resgatada: document.getElementById(`reuniao-resgatada-${blockId}`).value,
+                            };
+                            newActivitiesPayload.push(newActivity);
+                        }
+                    });
+
+                    if (!formIsValid) {
+                        showNotification('Por favor, preencha os campos obrigatórios (Lead e Tipo de Reunião) em todos os lançamentos.', 'error');
+                        return;
+                    }
+
+                    if (lancamentoBlocks.length === 0) {
+                        showNotification('Adicione pelo menos um lançamento antes de salvar.', 'error');
+                        return;
+                    }
+                    
+                    const { error } = await supabaseClient.from('activities').insert(newActivitiesPayload);
+
+                    if (error) {
+                        console.error('Erro ao salvar:', error);
+                        showNotification(`Falha ao salvar os lançamentos: ${error.message}`, 'error');
+                    } else {
+                        showNotification(`${newActivitiesPayload.length} lançamento(s) salvo(s) com sucesso!`, 'success');
+                        lancamentosContainer.innerHTML = '';
+                        createLancamentoBlock();
+                        // Realtime will handle the update, but we can optimistically fetch here
+                        await fetchAllData();
+                    }
+                });
+
+                // Listeners do Histórico e Modal de Edição
+                clearHistoryFiltersBtn.addEventListener('click', () => {
+                    const filters = document.querySelectorAll('#history-table-container .history-filter');
+                    filters.forEach(filter => {
+                        if (filter.tagName.toLowerCase() === 'select') {
+                            filter.selectedIndex = 0;
+                        } else {
+                            filter.value = '';
+                        }
+                    });
+                    historyDatePresetFilter.value = 'all_time';
+                    historyStartDateFilter.value = '';
+                    historyEndDateFilter.value = '';
+                    historyCustomDateFilters.classList.remove('visible');
+                    historyTypeFilter.querySelectorAll('input').forEach(cb => cb.checked = true);
+                    renderTable();
+                });
+                historyContainer.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    
+                    if (target.classList.contains('toggle-notes-btn')) {
+                        e.preventDefault();
+                        const cell = target.closest('td');
+                        const truncated = cell.querySelector('.notes-text-truncated');
+                        const full = cell.querySelector('.notes-text-full');
+                        
+                        const isCurrentlyExpanded = full.style.display === 'block';
+                        
+                        full.style.display = isCurrentlyExpanded ? 'none' : 'block';
+                        truncated.style.display = isCurrentlyExpanded ? 'block' : 'none';
+                        target.textContent = isCurrentlyExpanded ? 'Ver mais' : 'Ver menos';
+                        return;
+                    }
+                    
+                    const row = target.closest('tr');
+                    if (row && row.dataset.id && !target.closest('button')) {
+                        openEditModal(row.dataset.id);
+                        return;
+                    }
+
+                    if (target.classList.contains('delete-activity-btn')) {
+                        const id = target.dataset.id;
+                        const ok = await showConfirm('Tem certeza que deseja excluir esta atividade? Todos os pagamentos associados também serão excluídos.');
+                        if (!ok) return;
+
+                        const { error } = await supabaseClient
+                        .from('activities')
+                        .delete()
+                        .eq('id', id);
+
+                        if (error) {
+                            showNotification(`Erro ao excluir: ${error.message}`, 'error');
+                        } else {
+                            showNotification('Atividade excluída.', 'success');
+                            // o Realtime vai atualizar a UI
+                        }
+                    }
+
+                    if (target.classList.contains('end-deal-btn')) {
+                        const activityId = target.dataset.id; // MUDADO: Pega o ID da atividade da linha
+                        const activityDate = target.dataset.date; // NOVO: Pega a data da atividade da linha
+                        const leadName = target.closest('tr').querySelector('td:nth-child(4)').textContent; // Pega o nome do lead para a notificação
+
+                        if (activityId && activityDate) {
+                            const { error } = await supabaseClient
+                                .from('activities')
+                                .update({ deal_outcome: 'Perdida', sale_date: activityDate }) // CORRIGIDO: Usa a data da atividade, não a de hoje
+                                .eq('id', activityId); // CORRIGIDO: Atualiza o ID da atividade específica
+
+                            if (error) {
+                                showNotification(`Falha ao finalizar a negociação: ${error.message}`, 'error');
+                            } else {
+                                showNotification(`Negociação com ${leadName} foi finalizada.`, 'success');
+                                await fetchAllData();
+                            }
+                        }
+                    }
+                });
+                modalCloseBtn.addEventListener('click', closeEditModal);
+                editModal.addEventListener('click', (e) => {
+                    if (e.target === editModal) {
+                        closeEditModal();
+                    }
+                });
+                editForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const id = document.getElementById('edit-activity-id').value;
+                    
+                    if (!id) {
+                        showNotification('ERRO: ID da atividade não encontrado. Não foi possível salvar.', 'error');
+                        return;
+                    }
+
+                    const activityTypeSelect = document.getElementById('edit-activity-type');
+                    if (!activityTypeSelect.value) {
+                        showNotification('O campo "Tipo de Reunião" é obrigatório.', 'error');
+                        activityTypeSelect.style.borderColor = 'var(--error-color)';
+                        return;
+                    }
+                    activityTypeSelect.style.borderColor = '';
+
+                    const updatedData = {
+                        date: document.getElementById('edit-date').value,
+                        lead: document.getElementById('edit-lead-name').value,
+                        bdr: document.getElementById('edit-bdr').value,
+                        company_revenue: document.getElementById('edit-revenue').value,
+                        channel: document.getElementById('edit-channel').value,
+                        qualification: document.getElementById('edit-qualification').value,
+                        type: activityTypeSelect.value,
+                        status: document.getElementById('edit-activity-status').value,
+                        proposal_sent: document.getElementById('edit-proposal-sent').value,
+                        reuniao_resgatada: document.getElementById('edit-reuniao-resgatada').value,
+                        evolution: document.getElementById('edit-funnel-evolution').value,
+                        proposal_value: parseFloat(document.getElementById('edit-proposal-value').value) || null,
+                        notes: document.getElementById('edit-notes').value,
+                    };
+
+                    // ---- A CORREÇÃO É AQUI ----
+                    // Pega a atividade original para verificar o status
+                    const originalActivity = activities.find(act => act.id == id);
+                    
+                    // Se a atividade já estava marcada como "Ganha" ou "Perdida",
+                    // atualiza também a 'sale_date' para manter a consistência.
+                    if (originalActivity && originalActivity.deal_outcome) {
+                        updatedData.sale_date = updatedData.date;
+                    }
+                    // ---- FIM DA CORREÇÃO ----
+
+
+                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                    if (error) {
+                        showNotification(`Falha ao salvar as alterações: ${error.message}`, 'error'); // CORRIGIDO
+                    } else {
+                        showNotification('Alterações salvas com sucesso!', 'success'); // CORRIGIDO
+                        closeEditModal(); // CORRIGIDO
+                        // Realtime will handle update
+                    }
+                });
+
+                // Listeners de Propostas e Modal de Data
+                propostasContainer.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    
+                    if (target.classList.contains('editable')) {
+                        const id = target.dataset.id;
+                        openEditModal(id);
+                        return;
+                    }
+
+                    const button = target.closest('button');
+                    if (!button) return;
+
+                    const id = button.dataset.id;
+                    if (!id) return;
+
+                    // MODIFICADO: Em vez de atualizar o DB, abre o modal de data
+                    if (button.classList.contains('btn-ganha')) {
+                        const value = button.dataset.value;
+                        openSaleDateModal(id, 'Ganha', value);
+                    } else if (button.classList.contains('btn-perdida')) {
+                        openSaleDateModal(id, 'Perdida', null);
+                    }
+                    
+                    // O código de update do Supabase foi movido para o listener do novo modal
+                });
+                saleDateForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const id = saleDateActivityIdInput.value;
+                    const outcome = saleDateOutcomeInput.value;
+                    const value = parseFloat(saleDateValueInput.value);
+                    const saleDate = saleDateInput.value; // Pega a data selecionada
+
+                    if (!id || !outcome || !saleDate) {
+                        showNotification('Erro: Informações incompletas. Tente novamente.', 'error');
+                        return;
+                    }
+
+                    let updatedData = {};
+                    if (outcome === 'Ganha') {
+                        updatedData = { deal_outcome: 'Ganha', sale_value: value, sale_date: saleDate };
+                    } else { // 'Perdida'
+                        updatedData = { deal_outcome: 'Perdida', sale_date: saleDate };
+                    }
+
+                    const { error } = await supabaseClient.from('activities').update(updatedData).eq('id', id);
+
+                    if (error) {
+                        showNotification(`Falha ao atualizar a proposta: ${error.message}`, 'error');
+                    } else {
+                        showNotification(`Proposta marcada como "${outcome}" com sucesso!`, 'success');
+                        closeSaleDateModal();
+                        // O Realtime vai atualizar a lista de propostas
+                    }
+                });
+                saleDateModalCloseBtn.addEventListener('click', closeSaleDateModal);
+                saleDateModal.addEventListener('click', (e) => {
+                    if (e.target === saleDateModal) {
+                        closeSaleDateModal();
+                    }
+                });
+
+                // Listeners de Recebíveis e Modal de Pagamento
+                paymentModalCloseBtn.addEventListener('click', closePaymentModal);
+                paymentModal.addEventListener('click', (e) => {
+                    if (e.target === paymentModal) {
+                        closePaymentModal();
+                    }
+                });
+                recebiveisContainer.addEventListener('click', (e) => {
+                    const row = e.target.closest('tr.recebiveis-row');
+                    if (row) {
+                        openPaymentModal(row.dataset.id);
+                    }
+                });
+                addPaymentForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const activity_id = parseInt(paymentActivityIdInput.value);
+                    const valor_pago = parseFloat(document.getElementById('payment-amount').value);
+                    const data_pagamento = document.getElementById('payment-date').value;
+                    const meio_pagamento = document.getElementById('payment-method').value;
+
+                    if (!activity_id || !valor_pago || !data_pagamento) {
+                        showNotification('Por favor, preencha todos os campos do pagamento.', 'error');
+                        return;
+                    }
+
+                    const { data, error } = await supabaseClient.from('payments').insert([{ activity_id, valor_pago, data_pagamento, meio_pagamento }]).select();
+
+                    if(error) {
+                        showNotification(`Erro ao adicionar pagamento: ${error.message}`, 'error');
+                        console.error(error);
+                    } else {
+                        showNotification('Pagamento adicionado com sucesso!', 'success');
+                        // Realtime will handle the update
+                        addPaymentForm.reset();
+                        document.getElementById('payment-date').value = toISODateString(new Date());
+
+                    }
+                });
+                paymentsListContainer.addEventListener('click', async (e) => {
+                    if(e.target.classList.contains('delete-payment-btn')) {
+                        const paymentId = e.target.dataset.id;
+                        const ok = await showConfirm('Tem certeza que deseja excluir este pagamento?');
+                        if (!ok) return;
+                        
+                        const { error } = await supabaseClient.from('payments').delete().eq('id', paymentId);
+                        
+                        if(error) {
+                             showNotification(`Erro ao excluir pagamento: ${error.message}`, 'error');
+                             console.error(error);
+                        } else {
+                            showNotification('Pagamento excluído com sucesso.', 'success');
+                            // Realtime will handle update
+                        }
+                    }
+                });
+
+                // Listeners de Filtros de Data
+                const handleDatePresetChange = (presetFilter, customFilters, startDateInput, endDateInput, callback) => {
+                    const preset = presetFilter.value;
+                    const today = new Date();
+                    let start = new Date();
+                    let end = new Date();
+
+                    if (preset === 'custom') {
+                        customFilters.classList.add('visible');
+                        return;
+                    }
+                    
+                    customFilters.classList.remove('visible');
+
+                    switch(preset) {
+                        case 'today': break;
+                        case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
+                        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+                        case 'last_month':
+                            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                            end = new Date(today.getFullYear(), today.getMonth(), 0);
+                            break;
+                        case 'last7days': start.setDate(today.getDate() - 6); break;
+                        case 'all_time': start = null; end = null; break;
+                    }
+                    
+                    startDateInput.value = start ? toISODateString(start) : '';
+                    endDateInput.value = end ? toISODateString(end) : '';
+                    callback();
+                };
+                datePresetFilter.addEventListener('change', () => handleDatePresetChange(datePresetFilter, customDateFilters, startDateFilter, endDateFilter, updateAllData));
+                startDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
+                endDateFilter.addEventListener('change', () => { datePresetFilter.value = 'custom'; customDateFilters.classList.add('visible'); updateAllData(); });
+                
+                historyDatePresetFilter.addEventListener('change', () => handleDatePresetChange(historyDatePresetFilter, historyCustomDateFilters, historyStartDateFilter, historyEndDateFilter, renderTable));
+                historyStartDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
+                historyEndDateFilter.addEventListener('change', () => { historyDatePresetFilter.value = 'custom'; historyCustomDateFilters.classList.add('visible'); renderTable(); });
+
+                recebiveisDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisDatePresetFilter, recebiveisCustomDateFilters, recebiveisStartDateFilter, recebiveisEndDateFilter, renderRecebiveis));
+                recebiveisStartDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                recebiveisEndDateFilter.addEventListener('change', () => { recebiveisDatePresetFilter.value = 'custom'; recebiveisCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                
+                recebiveisPaymentDatePresetFilter.addEventListener('change', () => handleDatePresetChange(recebiveisPaymentDatePresetFilter, recebiveisPaymentCustomDateFilters, recebiveisPaymentStartDateFilter, recebiveisPaymentEndDateFilter, renderRecebiveis));
+                recebiveisPaymentStartDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+                recebiveisPaymentEndDateFilter.addEventListener('change', () => { recebiveisPaymentDatePresetFilter.value = 'custom'; recebiveisPaymentCustomDateFilters.classList.add('visible'); renderRecebiveis(); });
+
+                // Outros Listeners de Filtro
+                userFilter.addEventListener('change', updateAllData);
+                channelFilterDash.addEventListener('change', updateAllData);
+                propostasCloserFilter.addEventListener('change', renderPropostas);
+                historyTypeFilter.addEventListener('change', renderTable);
+                recebiveisCloserFilter.addEventListener('change', renderRecebiveis);
+                recebiveisStatusFilter.addEventListener('change', renderRecebiveis);
+
+
+                // Listener de Navegação
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        contentSections.forEach(s => s.classList.remove('active'));
+                        const targetId = link.getAttribute('data-target');
+                        document.getElementById(targetId).classList.add('active');
+                        link.classList.add('active');
+                    });
+                });
+                
                 // --- Inicialização ---
+                handleFormDatePresetChange(); // Deve ser chamado após a definição da função
                 createLancamentoBlock();
                 await fetchAllData();
                 setupRealtimeSubscriptions();
@@ -2456,11 +2463,4 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
 
